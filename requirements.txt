@@ -1,7 +1,7 @@
 ### NSFR
 torch==1.8.1
 lark-parser
-sklearn
+scikit_learn
 torchsummary
 setuptools>=58.5.3
 tensorboard
@@ -16,3 +16,4 @@ scipy>=1.4.1
 seaborn
 pandas
 rtpt
+jsonpickle

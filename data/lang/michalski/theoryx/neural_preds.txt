@@ -1,0 +1,10 @@
+in:2:train,image
+has_car:2:train,car
+car_num:2:car,num
+car_color:2:car,color
+car_length:2:car,length
+car_wall:2:car,wall
+car_roof:2:car,roof
+car_wheels:2:car,wheels
+car_load:2:car,load
+load_num:2:car,num

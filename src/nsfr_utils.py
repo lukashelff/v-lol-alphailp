@@ -5,6 +5,7 @@ import torch
 
 import data_clevr
 import data_kandinsky
+import data_michalski
 from percept import SlotAttentionPerceptionModule, YOLOPerceptionModule
 from facts_converter import FactsConverter
 from nsfr import NSFReasoner
@@ -124,6 +125,8 @@ def get_data_loader(args):
         return get_kandinsky_loader(args)
     elif args.dataset_type == 'clevr':
         return get_clevr_loader(args)
+    elif args.dataset_type == 'michalski':
+        return get_michalski_loader(args)
     else:
         assert 0, 'Invalid dataset type: ' + args.dataset_type
 
@@ -132,6 +135,8 @@ def get_data_pos_loader(args):
         return get_kandinsky_pos_loader(args)
     elif args.dataset_type == 'clevr':
         return get_clevr_pos_loader(args)
+    elif args.dataset_type == 'michalski':
+        return get_michalski_pos_loader(args)
     else:
         assert 0, 'Invalid dataset type: ' + args.dataset_type
 
@@ -167,6 +172,71 @@ def get_clevr_loader(args):
 
     return train_loader, val_loader, test_loader
 
+
+def get_michalski_loader(args, shuffle=False):
+    dataset_train = data_michalski.MICHALSKI(
+        args.dataset, 'train', small_data=args.small_data
+    )
+    dataset_val = data_michalski.MICHALSKI(
+        args.dataset, 'val', small_data=args.small_data
+    )
+    dataset_test = data_michalski.MICHALSKI(
+        args.dataset, 'test'
+    )
+
+    train_loader = torch.utils.data.DataLoader(
+        dataset_train,
+        shuffle=True,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+    val_loader = torch.utils.data.DataLoader(
+        dataset_val,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        dataset_test,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+
+    return train_loader, val_loader, test_loader
+
+
+def get_michalski_pos_loader(args, shuffle=False):
+    dataset_train = data_michalski.MICHALSKI_POSITIVE(
+        args.dataset, 'train', small_data=args.small_data
+    )
+    dataset_val = data_michalski.MICHALSKI_POSITIVE(
+        args.dataset, 'val', small_data=args.small_data
+    )
+    dataset_test = data_michalski.MICHALSKI_POSITIVE(
+        args.dataset, 'test'
+    )
+
+    train_loader = torch.utils.data.DataLoader(
+        dataset_train,
+        shuffle=True,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+    val_loader = torch.utils.data.DataLoader(
+        dataset_val,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        dataset_test,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+
+    return train_loader, val_loader, test_loader
 
 def get_kandinsky_loader(args, shuffle=False):
     dataset_train = data_kandinsky.KANDINSKY(
