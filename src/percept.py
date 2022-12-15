@@ -92,19 +92,19 @@ class SlotAttentionPerceptionModule(nn.Module):
         """Load slot attention network.
         """
         if self.device == torch.device('cpu'):
-            sa_net = SlotAttention_model(n_slots=10, n_iters=3, n_attr=18,
+            sa_net = SlotAttention_model(n_slots=self.e, n_iters=3, n_attr=self.d-1,
                                          encoder_hidden_channels=64,
                                          attention_hidden_channels=128, device=self.device)
             log = torch.load(
                 "src/weights/slot_attention/best.pt", map_location=torch.device(self.device))
-            sa_net.load_state_dict(log['weights'], strict=True)
-            sa_net.to(self.device)
+            # sa_net.load_state_dict(log['weights'], strict=True)
+            # sa_net.to(self.device)
             if not self.train_:
                 for param in sa_net.parameters():
                     param.requires_grad = False
             return sa_net
         else:
-            sa_net = SlotAttention_model(n_slots=10, n_iters=3, n_attr=18,
+            sa_net = SlotAttention_model(n_slots=self.e, n_iters=3, n_attr=self.d-1,
                                          encoder_hidden_channels=64,
                                          attention_hidden_channels=128, device=self.device)
             log = torch.load("src/weights/slot_attention/best.pt")

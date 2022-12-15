@@ -1,11 +1,10 @@
-train:train1
 car:car1,car2,car3,car4
-num:1,2,3,4,
+car_num:1,2,3,4
 color:yellow,green,grey,red,blue
 length:short,long
 wall:full,braced
 roof:none,foundation,solid_roof,braced_roof,peaked_roof
-wheels:2,3
+wheel:2,3
 load:blue_box,golden_vase,barrel,diamond,metal_box
-num:0,1,2,3
+load_num:0,1,2,3
 image:img

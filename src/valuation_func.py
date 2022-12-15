@@ -349,3 +349,226 @@ class SlotAttentionFrontValuationFunction(nn.Module):
         prob = self.logi(xyzxyz).squeeze()  # (B,)
         objectness = z_1[:, 0] * z_2[:, 0]  # (B,)
         return prob * objectness
+
+##########################################
+# Michalski valuation functions for slot attention #
+##########################################
+
+
+class MichalskiInValuationFunction(nn.Module):
+    """The function v_in.
+    """
+
+    def __init__(self, device):
+        super(MichalskiInValuationFunction, self).__init__()
+
+    def forward(self, z, x):
+        """
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            x (none): A dummy argument to represent the input constant.
+
+        Returns:
+            A batch of probabilities.
+        """
+        # return the objectness
+        return z[:, 0]
+
+
+class MichalskiCarNumValuationFunction(nn.Module):
+    """The function v__car_num.
+    """
+
+    def __init__(self, device):
+        super(MichalskiCarNumValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_shape = z[:, 1:5]
+        return (a * z_shape).sum(dim=1)
+
+
+class MichalskiColorValuationFunction(nn.Module):
+    """The function v_size.
+    """
+
+    def __init__(self, device):
+        super(MichalskiColorValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_size = z[:, 5:10]
+        return (a * z_size).sum(dim=1)
+
+
+class MichalskiLengthValuationFunction(nn.Module):
+    """The function v_material.
+    """
+
+    def __init__(self, device):
+        super(MichalskiLengthValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_material = z[:, 10:12]
+        return (a * z_material).sum(dim=1)
+
+
+class MichalskiWallValuationFunction(nn.Module):
+    """The function v_color.
+    """
+
+    def __init__(self, device):
+        super(MichalskiWallValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_color = z[:, 12:14]
+        return (a * z_color).sum(dim=1)
+
+
+class MichalskiRoofValuationFunction(nn.Module):
+    """The function v_color.
+    """
+
+    def __init__(self, device):
+        super(MichalskiRoofValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_color = z[:, 14:19]
+        return (a * z_color).sum(dim=1)
+
+
+class MichalskiWheelValuationFunction(nn.Module):
+    """The function v_color.
+    """
+
+    def __init__(self, device):
+        super(MichalskiWheelValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_color = z[:, 19:21]
+        return (a * z_color).sum(dim=1)
+
+
+class MichalskiLoadValuationFunction(nn.Module):
+    """The function v_color.
+    """
+
+    def __init__(self, device):
+        super(MichalskiLoadValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_color = z[:,21:26]
+        return (a * z_color).sum(dim=1)
+
+class MichalskiLoadNumValuationFunction(nn.Module):
+    """The function v_color.
+    """
+
+    def __init__(self, device):
+        super(MichalskiLoadNumValuationFunction, self).__init__()
+
+    def forward(self, z, a):
+        """
+        Args:
+        Args:
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
+                obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked_roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+            a (tensor): The one-hot tensor that is expanded to the batch size.
+
+        Returns:
+            A batch of probabilities.
+        """
+        z_color = z[:,26:]
+        return (a * z_color).sum(dim=1)

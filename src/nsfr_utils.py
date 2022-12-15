@@ -10,7 +10,8 @@ from percept import SlotAttentionPerceptionModule, YOLOPerceptionModule
 from facts_converter import FactsConverter
 from nsfr import NSFReasoner
 from logic_utils import build_infer_module, build_clause_infer_module
-from valuation import SlotAttentionValuationModule, YOLOValuationModule
+from valuation import SlotAttentionValuationModule, YOLOValuationModule, MichalskiSlotAttentionValuationModule
+
 attrs = ['color', 'shape', 'material', 'size']
 
 
@@ -372,6 +373,9 @@ def get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=Fal
     elif args.dataset_type == 'clevr':
         PM = SlotAttentionPerceptionModule(e=10, d=19, device=device)
         VM = SlotAttentionValuationModule(lang=lang,  device=device)
+    elif args.dataset_type == 'michalski':
+        PM = SlotAttentionPerceptionModule(e=4, d=30, device=device)
+        VM = MichalskiSlotAttentionValuationModule(lang=lang,  device=device)
     else:
         assert False, "Invalid dataset type: " + str(args.dataset_type)
     FC = FactsConverter(lang=lang, perception_module=PM,

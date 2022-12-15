@@ -112,6 +112,40 @@ def get_mode_declarations_clevr(lang, obj_num):
     ]
     return modeb_list
 
+def get_mode_declarations_michalski(lang, obj_num):
+    p_image = ModeTerm('+', DataType('image'))
+    m_car = ModeTerm('-', DataType('car'))
+    p_car = ModeTerm('+', DataType('car'))
+    s_car_num = ModeTerm('#', DataType('car_num'))
+    s_color = ModeTerm('#', DataType('color'))
+    s_length = ModeTerm('#', DataType('length'))
+    s_wall = ModeTerm('#', DataType('wall'))
+    s_roof = ModeTerm('#', DataType('roof'))
+    s_wheel = ModeTerm('#', DataType('wheel'))
+    s_load = ModeTerm('#', DataType('load'))
+    s_load_num = ModeTerm('#', DataType('load_num'))
+
+    # modeh_1 = ModeDeclaration('head', 'kp', p_image)
+
+    """
+    kp1(X):-in(O1,X),in(O2,X),size(O1,large),shape(O1,cube),size(O2,large),shape(O2,cylinder).
+    kp2(X):-in(O1,X),in(O2,X),size(O1,small),material(O1,metal),shape(O1,cube),size(O2,small),shape(O2,sphere).
+    kp3(X):-in(O1,X),in(O2,X),size(O1,large),color(O1,blue),shape(O1,sphere),size(O2,small),color(O2,yellow),shape(O2,sphere)."""
+
+    modeb_list = [
+        ModeDeclaration('body', obj_num, lang.get_pred_by_name('in'), [m_car, p_image]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('car_num'), [p_car, s_car_num]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('color'), [p_car, s_color]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('length'), [p_car, s_length]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('wall'), [p_car, s_wall]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('roof'), [p_car, s_roof]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('wheel'), [p_car, s_wheel]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('load'), [p_car, s_load]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('load_num'), [p_car, s_load_num]),
+    ]
+    return modeb_list
+
+
 def get_mode_declarations_kandinsky(lang, obj_num):
     p_image = ModeTerm('+', DataType('image'))
     m_object = ModeTerm('-', DataType('object'))
@@ -141,5 +175,7 @@ def get_mode_declarations(args, lang, obj_num):
         return get_mode_declarations_kandinsky(lang, obj_num)
     elif args.dataset_type == 'clevr':
         return get_mode_declarations_clevr(lang, obj_num)
+    elif args.dataset_type == 'michalski':
+        return get_mode_declarations_michalski(lang, obj_num)
     else:
         assert False, "Invalid data type."
