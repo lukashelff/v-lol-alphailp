@@ -80,13 +80,14 @@ class SlotAttentionPerceptionModule(nn.Module):
         model: The slot attention model.
     """
 
-    def __init__(self, e, d, device, train=False):
+    def __init__(self, e, d, device, train=False, pretrained=True):
         super().__init__()
         self.e = e  # num of entities -> n_slots=10
         self.d = d  # num of dimension -> encoder_hidden_channels=64
         self.device = device
         self.train_ = train  # the parameters should be trained or not
         self.model = self.load_model()
+        self.pretrained = pretrained
 
     def load_model(self):
         """Load slot attention network.
@@ -97,8 +98,9 @@ class SlotAttentionPerceptionModule(nn.Module):
                                          attention_hidden_channels=128, device=self.device)
             log = torch.load(
                 "src/weights/slot_attention/best.pt", map_location=torch.device(self.device))
-            # sa_net.load_state_dict(log['weights'], strict=True)
-            # sa_net.to(self.device)
+            if self.pretrained:
+                sa_net.load_state_dict(log['weights'], strict=True)
+                sa_net.to(self.device)
             if not self.train_:
                 for param in sa_net.parameters():
                     param.requires_grad = False
@@ -108,8 +110,9 @@ class SlotAttentionPerceptionModule(nn.Module):
                                          encoder_hidden_channels=64,
                                          attention_hidden_channels=128, device=self.device)
             log = torch.load("src/weights/slot_attention/best.pt")
-            sa_net.load_state_dict(log['weights'], strict=True)
-            sa_net.to(self.device)
+            if self.pretrained:
+                sa_net.load_state_dict(log['weights'], strict=True)
+                sa_net.to(self.device)
             if not self.train_:
                 for param in sa_net.parameters():
                     param.requires_grad = False
