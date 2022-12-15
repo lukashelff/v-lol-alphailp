@@ -86,8 +86,8 @@ class SlotAttentionPerceptionModule(nn.Module):
         self.d = d  # num of dimension -> encoder_hidden_channels=64
         self.device = device
         self.train_ = train  # the parameters should be trained or not
-        self.model = self.load_model()
         self.pretrained = pretrained
+        self.model = self.load_model()
 
     def load_model(self):
         """Load slot attention network.
