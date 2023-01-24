@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
-
+from pathlib import Path
 
 def load_images_and_labels(dataset='theoryx', split='train'):
     """Load image paths and labels for clevr-hans dataset.

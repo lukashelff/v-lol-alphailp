@@ -123,6 +123,7 @@ class YOLOValuationModule(nn.Module):
                       str(term) + ':' + term.dtype.name
 
 
+
 class SlotAttentionValuationModule(nn.Module):
     """A module to call valuation functions.
         Attrs:
@@ -254,7 +255,7 @@ class SlotAttentionValuationModule(nn.Module):
         return onehot
 
 
-class MichalskiSlotAttentionValuationModule(nn.Module):
+class MichalskiValuationModule(nn.Module):
     """A module to call valuation functions.
         Attrs:
             lang (language): The language.

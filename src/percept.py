@@ -22,14 +22,20 @@ class YOLOPerceptionModule(nn.Module):
         preprocess (tensor->tensor): Reshape the yolo output into the unified format of the perceptiom module.
     """
 
-    def __init__(self, e, d, device, train=False):
+    def __init__(self, e, d, device, train=False, ds_type='kandinsky'):
         super().__init__()
         self.e = e  # num of entities
         self.d = d  # num of dimension
         self.device = device
         self.train_ = train  # the parameters should be trained or not
-        self.model = self.load_model(
-            path='src/weights/yolov5/best.pt', device=device)
+        if ds_type == 'michalski':
+            self.model = self.load_model(
+                # path='src/weights/michalski/yolov5s.pt', device=device)
+                path='src/weights/yolov5/best.pt', device=device)
+
+        else:
+            self.model = self.load_model(
+                path='src/weights/yolov5/best.pt', device=device)
         # function to transform e * d shape, YOLO returns class labels,
         # it should be decomposed into attributes and the probabilities.
         self.preprocess = YOLOPreprocess(device)

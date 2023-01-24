@@ -18,7 +18,6 @@ from neural_utils import LogisticRegression, MLP
 
 matplotlib.use("Agg")
 
-
 torch.autograd.set_detect_anomaly(True)
 
 
@@ -50,15 +49,14 @@ def get_args():
     parser.add_argument(
         "--dataset",
         choices=["twopairs", "threepairs", "red-triangle", "closeby",
-                 "online", "online-pair", "nine-circles"],
+                 "online", "online-pair", "nine-circles", "theoryx", "complex", "numeric"],
         help="Use MNIST dataset",
     )
-    parser.add_argument("--dataset-type", default="kandinsky", help="kandinsky or clevr")
-    parser.add_argument(
-        "--perception-model",
-        choices=["yolo", "slotattention"],
-        help="Choose yolo or slotattention for object recognition.",
-    )
+    parser.add_argument("--dataset-type", default="kandinsky", help="kandinsky, clevr or michalski",
+                        choices=["kandinsky", "clevr", "michalski"])
+    parser.add_argument("--perception-model", choices=["yolo", "slotattention"],
+                        help="Choose yolo or slotattention for object recognition.",
+                        )
     parser.add_argument('--device', default='',
                         help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
 
@@ -98,6 +96,7 @@ def compute_acc(outputs, targets):
     predicts = np.argmax(outputs, axis=1)
     return accuracy_score(targets, predicts)
 
+
 def predict(net, predict_net, loader, device, th=None):
     predicted_list = []
     target_list = []
@@ -127,7 +126,7 @@ def predict(net, predict_net, loader, device, th=None):
         max_accuracy = accuracies.max()
         max_accuracy_threshold = thresholds[accuracies.argmax()]
         rec_score = recall_score(
-            target_set,  [m > thresh for m in predicted], average=None)
+            target_set, [m > thresh for m in predicted], average=None)
 
         print('target_set: ', target_set, target_set.shape)
         print('predicted: ', predicted, predicted.shape)
@@ -139,13 +138,17 @@ def predict(net, predict_net, loader, device, th=None):
     else:
         accuracy = accuracy_score(target_set, [m > th for m in predicted])
         rec_score = recall_score(
-            target_set,  [m > th for m in predicted], average=None)
+            target_set, [m > th for m in predicted], average=None)
         return accuracy, rec_score, th
 
-def run(net, predict_net,  loader, optimizer, criterion, writer, args, device, train=False, epoch=0,  rtpt=None, max_obj_num=4):
+
+def run(net, predict_net, loader, optimizer, criterion, writer, args, device, train=False, epoch=0, rtpt=None,
+        max_obj_num=4):
     iters_per_epoch = len(loader)
     loss_list = []
     val_loss_list = []
+    e = 4 if args.dataset_type == 'michalski' else 6
+    d = 30 if args.dataset_type == 'michalski' else 11
 
     be = torch.nn.BCELoss()
 
@@ -159,7 +162,7 @@ def run(net, predict_net,  loader, optimizer, criterion, writer, args, device, t
 
         # infer and predict the target probability
         x = net(imgs)
-        predicted = predict_net(x.view(-1, 6*11)).squeeze()
+        predicted = predict_net(x.view(-1, e * d)).squeeze()
 
         # binary cross-entropy loss computation
         loss = be(predicted, target_set)
@@ -171,6 +174,7 @@ def run(net, predict_net,  loader, optimizer, criterion, writer, args, device, t
             optimizer.step()
 
     return loss_sum
+
 
 def main(n):
     args = get_args()
@@ -186,13 +190,16 @@ def main(n):
     train_loader, val_loader, test_loader = get_data_loader(args)
 
     start_epoch = 0
-    #net = models.resnet50(pretrained=True)
-    #net.to(device)
-    #predict_net = LogisticRegression(input_dim=1000)
-    #predict_net.to(device)
+    # net = models.resnet50(pretrained=True)
+    # net.to(device)
+    # predict_net = LogisticRegression(input_dim=1000)
+    # predict_net.to(device)
 
-    net = YOLOPerceptionModule(e=6, d=11, device=device)
-    predict_net = MLP(in_channels=6 * 11, out_channels=1)
+    e = 4 if args.dataset_type == 'michalski' else 6
+    d = 30 if args.dataset_type == 'michalski' else 11
+
+    net = YOLOPerceptionModule(e=e, d=d, device=device, ds_type=args.dataset_type)
+    predict_net = MLP(in_channels=e * d, out_channels=1)
     predict_net.to(device)
     # setting optimizer
     params = list(net.parameters()) + list(predict_net.parameters())
@@ -213,9 +220,10 @@ def main(n):
     for epoch in np.arange(start_epoch, args.epochs + start_epoch):
         # training step
         loss = run(
-            net, predict_net, train_loader, optimizer, criterion, writer, args, device=device, train=True, epoch=epoch, rtpt=rtpt)
+            net, predict_net, train_loader, optimizer, criterion, writer, args, device=device, train=True, epoch=epoch,
+            rtpt=rtpt)
         writer.add_scalar("metric/train_loss", loss, global_step=epoch)
-        #writer.add_scalar("metric/train_acc",
+        # writer.add_scalar("metric/train_acc",
         #                          mean_acc, global_step=epoch)
         rtpt.step(subtitle=f"loss={loss:2.2f}")
 
@@ -224,7 +232,7 @@ def main(n):
             print("Predicting on validation data set...")
             acc_val, rec_val, th_val = predict(net, predict_net, val_loader, device)
             writer.add_scalar("metric/val_acc",
-                      acc_val, global_step=epoch)
+                              acc_val, global_step=epoch)
             print("Predicting on training data set...")
             # training split
             acc, rec, th = predict(net, predict_net, train_loader, device, th=th_val)
@@ -235,7 +243,7 @@ def main(n):
             acc_test, rec_test, th_test = predict(
                 net, predict_net, test_loader, device, th=th_val)
             writer.add_scalar("metric/test_acc", acc_test, global_step=epoch)
-            #def predict(net, predict_net, loader, device, th=None):
+            # def predict(net, predict_net, loader, device, th=None):
             print("training acc: ", acc, "threashold: ", th, "recall: ", rec)
             print("val acc: ", acc_val, "threashold: ", th_val, "recall: ", rec_val)
             print("test acc: ", acc_test, "threashold: ", th_test, "recall: ", rec_test)
