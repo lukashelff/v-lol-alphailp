@@ -32,7 +32,6 @@ class YOLOPerceptionModule(nn.Module):
         if ds_type == 'michalski':
             self.model = self.load_model(
                 path='src/weights/michalski/best.pt', device=device)
-                # path='src/weights/michalski/best.pt', device=device)
 
         else:
             self.model = self.load_model(
@@ -256,10 +255,16 @@ class MichalskiPreprocess(nn.Module):
             x (tensor): The output of the YOLO model. The format is:
 
         Returns:
+            classes: obj_prob + car_number + color + length + wall + roof + load + load_number
+                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
+                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
+                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
+
             Z (tensor): The preprocessed object-centric representation Z. The format is: [x1, y1, x2, y2, color1, color2, color3, shape1, shape2, shape3, objectness].
             x1,x2,y1,y2 are normalized to [0-1].
             The probability for each attribute is obtained by copying the probability of the classification of the YOLO model.
         """
+
         batch_size = x.size(0)
         obj_num = x.size(1)
         object_list = []
@@ -268,6 +273,20 @@ class MichalskiPreprocess(nn.Module):
             class_id = zi[:, -1].to(torch.int64)
             color = self.colors[class_id] * zi[:, -2].unsqueeze(-1)
             shape = self.shapes[class_id] * zi[:, -2].unsqueeze(-1)
+
+
+            self.car_nums = ['1', '2', '3', '4']
+            self.colors = ["yellow", "green", "grey", "red", "blue"]
+            self.lengths = ["short", "long"]
+            self.walls = ["full", "braced"]
+            self.roofs = ["none", "foundation", "solid_roof", "braced_roof", "peaked_roof"]
+            self.wheels = ['2', '3']
+            self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
+            self.load_nums = ['0', '1', '2', '3']
+
+
+
+
             xyxy = zi[:, 0:4] / self.img_size
             prob = zi[:, -2].unsqueeze(-1)
             obj = torch.cat([xyxy, color, shape, prob], dim=-1)

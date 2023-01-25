@@ -195,7 +195,7 @@ def main(n):
     # predict_net = LogisticRegression(input_dim=1000)
     # predict_net.to(device)
 
-    e = 4 if args.dataset_type == 'michalski' else 6
+    e = 4*8 if args.dataset_type == 'michalski' else 6
     d = 30 if args.dataset_type == 'michalski' else 11
 
     net = YOLOPerceptionModule(e=e, d=d, device=device, ds_type=args.dataset_type)
