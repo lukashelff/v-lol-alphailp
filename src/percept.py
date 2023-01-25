@@ -8,6 +8,7 @@ from yolov5.utils.general import non_max_suppression
 
 from slot_attention.model import SlotAttention_model
 import sys
+
 sys.path.insert(0, 'src/yolov5')
 
 
@@ -30,8 +31,8 @@ class YOLOPerceptionModule(nn.Module):
         self.train_ = train  # the parameters should be trained or not
         if ds_type == 'michalski':
             self.model = self.load_model(
-                # path='src/weights/michalski/yolov5s.pt', device=device)
-                path='src/weights/yolov5/best.pt', device=device)
+                path='src/weights/michalski/best.pt', device=device)
+                # path='src/weights/michalski/best.pt', device=device)
 
         else:
             self.model = self.load_model(
@@ -54,9 +55,11 @@ class YOLOPerceptionModule(nn.Module):
         # yolov5.utils.general.non_max_supression returns List[tensors]
         # with lengh of batch size
         # the number of objects can vary image to iamge
-        yolo_output = self.pad_result(
-            non_max_suppression(pred, max_det=self.e))
-        return self.preprocess(yolo_output)
+        sup = non_max_suppression(pred, max_det=self.e)
+        tmp = sup[0]
+        yolo_output = self.pad_result(sup)
+        post = self.preprocess(yolo_output)
+        return post
 
     def pad_result(self, output):
         """Padding the result by zeros.
@@ -99,7 +102,7 @@ class SlotAttentionPerceptionModule(nn.Module):
         """Load slot attention network.
         """
         if self.device == torch.device('cpu'):
-            sa_net = SlotAttention_model(n_slots=self.e, n_iters=3, n_attr=self.d-1,
+            sa_net = SlotAttention_model(n_slots=self.e, n_iters=3, n_attr=self.d - 1,
                                          encoder_hidden_channels=64,
                                          attention_hidden_channels=128, device=self.device)
             log = torch.load(
@@ -112,7 +115,7 @@ class SlotAttentionPerceptionModule(nn.Module):
                     param.requires_grad = False
             return sa_net
         else:
-            sa_net = SlotAttention_model(n_slots=self.e, n_iters=3, n_attr=self.d-1,
+            sa_net = SlotAttention_model(n_slots=self.e, n_iters=3, n_attr=self.d - 1,
                                          encoder_hidden_channels=64,
                                          attention_hidden_channels=128, device=self.device)
             log = torch.load("src/weights/slot_attention/best.pt")
@@ -144,7 +147,7 @@ class YOLOPreprocess(nn.Module):
         self.device = device
         self.img_size = img_size
         self.classes = ['red square', 'red circle', 'red triangle',
-                        'yellow square', 'yellow circle',  'yellow triangle',
+                        'yellow square', 'yellow circle', 'yellow triangle',
                         'blue square', 'blue circle', 'blue triangle']
         self.colors = torch.stack([
             torch.tensor([1, 0, 0]).to(device),
@@ -193,3 +196,81 @@ class YOLOPreprocess(nn.Module):
             obj = torch.cat([xyxy, color, shape, prob], dim=-1)
             object_list.append(obj)
         return torch.stack(object_list, dim=1).to(self.device)
+
+
+
+class MichalskiPreprocess(nn.Module):
+    """A perception module using Slot Attention.
+
+    Attrs:
+        device (device): The device where the model to be loaded.
+        img_size (int): The size of the (resized) image to normalize the xy-coordinates.
+        classes (list(str)): The classes of objects.
+        colors (tensor(int)): The one-hot encodings of the colors (repeated 3 times).
+        shapes (tensor(int)): The one-hot encodings of the shapes (repeated 3 times).
+    """
+
+    def __init__(self, device, img_size=128):
+        super().__init__()
+        self.device = device
+        self.img_size = img_size
+        self.car_nums = ['1', '2', '3', '4']
+        self.colors = ["yellow", "green", "grey", "red", "blue"]
+        self.lengths = ["short", "long"]
+        self.walls = ["full", "braced"]
+        self.roofs = ["none", "foundation", "solid_roof", "braced_roof", "peaked_roof"]
+        self.wheels = ['2', '3']
+        self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
+        self.load_nums = ['0', '1', '2', '3']
+
+        self.classes = ['red square', 'red circle', 'red triangle',
+                        'yellow square', 'yellow circle', 'yellow triangle',
+                        'blue square', 'blue circle', 'blue triangle']
+        self.colors = torch.stack([
+            torch.tensor([1, 0, 0]).to(device),
+            torch.tensor([1, 0, 0]).to(device),
+            torch.tensor([1, 0, 0]).to(device),
+            torch.tensor([0, 1, 0]).to(device),
+            torch.tensor([0, 1, 0]).to(device),
+            torch.tensor([0, 1, 0]).to(device),
+            torch.tensor([0, 0, 1]).to(device),
+            torch.tensor([0, 0, 1]).to(device),
+            torch.tensor([0, 0, 1]).to(device)
+        ])
+        self.shapes = torch.stack([
+            torch.tensor([1, 0, 0]).to(device),
+            torch.tensor([0, 1, 0]).to(device),
+            torch.tensor([0, 0, 1]).to(device),
+            torch.tensor([1, 0, 0]).to(device),
+            torch.tensor([0, 1, 0]).to(device),
+            torch.tensor([0, 0, 1]).to(device),
+            torch.tensor([1, 0, 0]).to(device),
+            torch.tensor([0, 1, 0]).to(device),
+            torch.tensor([0, 0, 1]).to(device)
+        ])
+
+    def forward(self, x):
+        """A preprocess funciton for the YOLO model. The format is: [x1, y1, x2, y2, prob, class].
+
+        Args:
+            x (tensor): The output of the YOLO model. The format is:
+
+        Returns:
+            Z (tensor): The preprocessed object-centric representation Z. The format is: [x1, y1, x2, y2, color1, color2, color3, shape1, shape2, shape3, objectness].
+            x1,x2,y1,y2 are normalized to [0-1].
+            The probability for each attribute is obtained by copying the probability of the classification of the YOLO model.
+        """
+        batch_size = x.size(0)
+        obj_num = x.size(1)
+        object_list = []
+        for i in range(obj_num):
+            zi = x[:, i]
+            class_id = zi[:, -1].to(torch.int64)
+            color = self.colors[class_id] * zi[:, -2].unsqueeze(-1)
+            shape = self.shapes[class_id] * zi[:, -2].unsqueeze(-1)
+            xyxy = zi[:, 0:4] / self.img_size
+            prob = zi[:, -2].unsqueeze(-1)
+            obj = torch.cat([xyxy, color, shape, prob], dim=-1)
+            object_list.append(obj)
+        return torch.stack(object_list, dim=1).to(self.device)
+

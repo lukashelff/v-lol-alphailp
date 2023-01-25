@@ -183,7 +183,7 @@ def main(n):
     else:
         base = 'small_KP/'
     name = base + args.dataset + '/YOLOMLP_' + str(n)
-    device = 'cuda:' + args.device
+    device = 'cpu' if args.no_cuda else 'cuda:' + args.device
     writer = SummaryWriter(f"runs/{name}", purge_step=0)
 
     # get torch data loader
