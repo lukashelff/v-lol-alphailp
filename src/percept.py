@@ -77,7 +77,6 @@ class YOLOPerceptionModule(nn.Module):
         return torch.stack(padded_list)
 
 
-
 class MichalskiPerceptionModule(nn.Module):
     """A perception module using Michalski.
 
@@ -89,30 +88,12 @@ class MichalskiPerceptionModule(nn.Module):
         preprocess (tensor->tensor): Reshape the yolo output into the unified format of the perceptiom module.
     """
 
-    # def __init__(self, e, d, device, train=False):
-    #     super().__init__()
-    #     self.e = e  # num of entities
-    #     self.d = d  # num of dimension
-    #     self.device = device
-    #     self.train_ = train  # the parameters should be trained or not
-    #     self.model = self.load_model()
-    #     # function to transform e * d shape, YOLO returns class labels,
-    #     # it should be decomposed into attributes and the probabilities.
-    #     self.preprocess = MichalskiPreprocess(device)
-    #
-    # def load_model(self):
-    #     print("Loading Michalski model...")
-    #     michalski_net = attempt_load(weights='src/weights/michalski/model.pth')
-    #     michalski_net.to(self.device)
-    #     if not self.train_:
-    #         for param in michalski_net.parameters():
-    #             param.requires_grad = False
-    #     return michalski_net
-
-    def __init__(self, device, train=False):
+    def __init__(self, device, e=4, d=32, train=False):
         super().__init__()
+        self.e = e  # num of entities
+        self.d = d  # num of dimension
         resnet = models.resnet18(pretrained=True)
-        checkpoint = torch.load('src/weights/michalski/model.pth' , map_location=device)
+        checkpoint = torch.load('src/weights/michalski/model.pth', map_location=device)
         layers = list(resnet.children())[:9]
         self.fc = resnet.fc
         self.features1 = nn.Sequential(*layers[:6])
@@ -137,6 +118,11 @@ class MichalskiPerceptionModule(nn.Module):
         wheel_count = ['2_wheels', '3_wheels']
         load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']  # correct order
         # color, length, walls, roofs, wheel_count, load_obj1, load_obj2, load_obj3
+        # none, yellow, green, grey, red, blue,
+        # short, long, braced_wall, solid_wall,
+        # roof_foundation, solid_roof, braced_roof, peaked_roof,
+        # 2_wheels, 3_wheels, box, golden_vase, barrel, diamond, metal_pot, oval_vase
+
         self.label_num_classes = [22] * 8
         all_classes = sum(self.label_num_classes)
         in_features = resnet.inplanes
@@ -152,7 +138,18 @@ class MichalskiPerceptionModule(nn.Module):
         soft = nn.Softmax(dim=1)
 
         class_output = [classifier(x) for classifier in self.classifier]
+        a = class_output[0].size()
         preds = torch.cat(class_output, dim=1).view(-1, 32, 22)
+        car_pos = torch.zeros(preds.size(0), 32, 4)
+        car_pos[:, 0, 0] = 1
+        car_pos[:, 8, 1] = 1
+        car_pos[:, 16, 2] = 1
+        car_pos[:, 24, 3] = 1
+        a = preds[:,:,0].unsqueeze(2)
+        b = preds[:,:,1:]
+        preds = torch.cat([a, car_pos, b], dim=2)
+
+
         # preds = []
         # for output in class_output:
         #     for i, num_classes in enumerate(self.label_num_classes):
@@ -161,7 +158,6 @@ class MichalskiPerceptionModule(nn.Module):
         #         pred = soft(output[:, ind_start:ind_end])
         #         preds.append(pred)
         return preds
-
 
 
 class SlotAttentionPerceptionModule(nn.Module):
@@ -285,7 +281,6 @@ class YOLOPreprocess(nn.Module):
         return torch.stack(object_list, dim=1).to(self.device)
 
 
-
 class MichalskiPreprocess(nn.Module):
     """A perception module using Slot Attention.
 
@@ -362,7 +357,6 @@ class MichalskiPreprocess(nn.Module):
             color = self.colors[class_id] * zi[:, -2].unsqueeze(-1)
             shape = self.shapes[class_id] * zi[:, -2].unsqueeze(-1)
 
-
             self.car_nums = ['1', '2', '3', '4']
             self.colors = ["yellow", "green", "grey", "red", "blue"]
             self.lengths = ["short", "long"]
@@ -372,12 +366,8 @@ class MichalskiPreprocess(nn.Module):
             self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
             self.load_nums = ['0', '1', '2', '3']
 
-
-
-
             xyxy = zi[:, 0:4] / self.img_size
             prob = zi[:, -2].unsqueeze(-1)
             obj = torch.cat([xyxy, color, shape, prob], dim=-1)
             object_list.append(obj)
         return torch.stack(object_list, dim=1).to(self.device)
-

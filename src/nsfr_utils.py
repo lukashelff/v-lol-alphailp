@@ -374,7 +374,7 @@ def get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=Fal
         PM = SlotAttentionPerceptionModule(e=10, d=19, device=device)
         VM = SlotAttentionValuationModule(lang=lang,  device=device)
     elif args.dataset_type == 'michalski':
-        PM = MichalskiPerceptionModule(e=4, d=30, device=device, ds_type=args.dataset_type)
+        PM = MichalskiPerceptionModule(e=4, d=32, device=device)
         VM = MichalskiValuationModule(lang=lang,  device=device)
     else:
         assert False, "Invalid dataset type: " + str(args.dataset_type)

@@ -329,8 +329,10 @@ class MichalskiValuationModule(nn.Module):
         v_wall = MichalskiWallValuationFunction(device)
         v_roof = MichalskiRoofValuationFunction(device)
         v_wheel = MichalskiWheelValuationFunction(device)
-        v_load = MichalskiLoadValuationFunction(device)
-        v_load_num = MichalskiLoadNumValuationFunction(device)
+        v_load1 = MichalskiLoad1ValuationFunction(device)
+        v_load2 = MichalskiLoad2ValuationFunction(device)
+        v_load3 = MichalskiLoad3ValuationFunction(device)
+        # v_load_num = MichalskiLoadNumValuationFunction(device)
         vfs['in'] = v_in
         vfs['car_num'] = v_car_num
         vfs['color'] = v_color
@@ -338,21 +340,11 @@ class MichalskiValuationModule(nn.Module):
         vfs['wall'] = v_wall
         vfs['roof'] = v_roof
         vfs['wheel'] = v_wheel
-        vfs['load'] = v_load
-        vfs['load_num'] = v_load_num
-
-        # if pretrained:
-        #     vfs['rightside'].load_state_dict(torch.load(
-        #         'src/weights/neural_predicates/rightside_pretrain.pt', map_location=device))
-        #     vfs['rightside'].eval()
-        #     vfs['leftside'].load_state_dict(torch.load(
-        #         'src/weights/neural_predicates/leftside_pretrain.pt', map_location=device))
-        #     vfs['leftside'].eval()
-        #     vfs['front'].load_state_dict(torch.load(
-        #         'src/weights/neural_predicates/front_pretrain.pt', map_location=device))
-        #     vfs['front'].eval()
-        #     print('Pretrained  neural predicates have been loaded!')
-        return nn.ModuleList([v_in, v_car_num, v_color, v_length, v_wall, v_roof, v_load, v_load_num]), vfs
+        vfs['load1'] = v_load1
+        vfs['load2'] = v_load2
+        vfs['load3'] = v_load3
+        # vfs['load_num'] = v_load_num
+        return nn.ModuleList([v_in, v_car_num, v_color, v_length, v_wall, v_roof, v_load1, v_load2, v_load3]), vfs
 
     def forward(self, zs, atom):
         """Convert the object-centric representation to a valuation tensor.
