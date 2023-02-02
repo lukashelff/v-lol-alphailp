@@ -131,9 +131,9 @@ class YOLOOnlineValuationFunction(nn.Module):
             A batch of probabilities.
         """
         X = torch.stack([self.to_center_x(z)
-                        for z in [z_1, z_2, z_3, z_4, z_5]], dim=1).unsqueeze(-1)
+                         for z in [z_1, z_2, z_3, z_4, z_5]], dim=1).unsqueeze(-1)
         Y = torch.stack([self.to_center_y(z)
-                        for z in [z_1, z_2, z_3, z_4, z_5]], dim=1).unsqueeze(-1)
+                         for z in [z_1, z_2, z_3, z_4, z_5]], dim=1).unsqueeze(-1)
         # add bias term
         X = torch.cat([torch.ones_like(X), X], dim=2)
         X_T = torch.transpose(X, 1, 2)
@@ -141,7 +141,7 @@ class YOLOOnlineValuationFunction(nn.Module):
         W = torch.matmul(torch.matmul(
             torch.inverse(torch.matmul(X_T, X)), X_T), Y)
         diff = torch.norm(Y - torch.sum(torch.transpose(W, 1, 2)
-                          * X, dim=2).unsqueeze(-1), dim=1)
+                                        * X, dim=2).unsqueeze(-1), dim=1)
         self.diff = diff
         return self.logi(diff).squeeze()
 
@@ -350,6 +350,7 @@ class SlotAttentionFrontValuationFunction(nn.Module):
         objectness = z_1[:, 0] * z_2[:, 0]  # (B,)
         return prob * objectness
 
+
 ##########################################
 # Michalski valuation functions for slot attention #
 ##########################################
@@ -392,14 +393,18 @@ class MichalskiCarNumValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
@@ -419,14 +424,18 @@ class MichalskiColorValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
@@ -446,20 +455,22 @@ class MichalskiLengthValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [ none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
-            a (tensor): The one-hot tensor that is expanded to the batch size.
-
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
         Returns:
             A batch of probabilities.
         """
-        z_material = z[:, 10:14]
+        z_material = z[:, 10:12]
         return (a * z_material).sum(dim=1)
 
 
@@ -473,20 +484,24 @@ class MichalskiWallValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [ none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 14:16]
+        z_color = z[:, 12:14]
         return (a * z_color).sum(dim=1)
 
 
@@ -501,20 +516,24 @@ class MichalskiRoofValuationFunction(nn.Module):
         """
         Args:
         Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [ none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:, 16:19]
+        z_color = z[:, 0] + z[:, 14:19]
         return (a * z_color).sum(dim=1)
 
 
@@ -528,15 +547,18 @@ class MichalskiWheelValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-        Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
@@ -556,22 +578,26 @@ class MichalskiLoad1ValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-        Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [ none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:,21:26]
+        z_color = z[:, 0] + z[:, 21:28]
         return (a * z_color).sum(dim=1)
+
 
 class MichalskiLoad2ValuationFunction(nn.Module):
     """The function v_color.
@@ -583,22 +609,25 @@ class MichalskiLoad2ValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-        Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [1,2,3,4, none,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
-            a (tensor): The one-hot tensor that is expanded to the batch size.
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
 
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:,21:26]
+        z_color = z[:, 0] + z[:, 28:35]
         return (a * z_color).sum(dim=1)
+
 
 class MichalskiLoad3ValuationFunction(nn.Module):
     """The function v_color.
@@ -610,21 +639,24 @@ class MichalskiLoad3ValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-        Args:
-            z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + load + load_number
-                [ none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             a (tensor): The one-hot tensor that is expanded to the batch size.
 
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:,21:26]
+        z_color = z[:, 0] + z[:, 35:42]
         return (a * z_color).sum(dim=1)
 
 # class MichalskiLoadNumValuationFunction(nn.Module):

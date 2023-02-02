@@ -245,6 +245,7 @@ class PerceptioModel(nn.Module):
     Returns:
         Z (tensor): The attribute representation of the train Z of size (batch_size, e, d).
                     e=32 (4*8), number of cars = 4 and numer attributes for each car = 8.
+                            Attributes: [color, length, wall, roof, wheels, load1, load2, load3].
                     d=22, number of classes for each attribute. The format is:
                             [none, yellow, green, grey, red, blue,
                             short, long, braced_wall, solid_wall,
@@ -313,38 +314,13 @@ class MichalskiPreprocess(nn.Module):
         self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
         self.load_nums = ['0', '1', '2', '3']
 
-        self.classes = ['red square', 'red circle', 'red triangle',
-                        'yellow square', 'yellow circle', 'yellow triangle',
-                        'blue square', 'blue circle', 'blue triangle']
-        self.colors = torch.stack([
-            torch.tensor([1, 0, 0]).to(device),
-            torch.tensor([1, 0, 0]).to(device),
-            torch.tensor([1, 0, 0]).to(device),
-            torch.tensor([0, 1, 0]).to(device),
-            torch.tensor([0, 1, 0]).to(device),
-            torch.tensor([0, 1, 0]).to(device),
-            torch.tensor([0, 0, 1]).to(device),
-            torch.tensor([0, 0, 1]).to(device),
-            torch.tensor([0, 0, 1]).to(device)
-        ])
-        self.shapes = torch.stack([
-            torch.tensor([1, 0, 0]).to(device),
-            torch.tensor([0, 1, 0]).to(device),
-            torch.tensor([0, 0, 1]).to(device),
-            torch.tensor([1, 0, 0]).to(device),
-            torch.tensor([0, 1, 0]).to(device),
-            torch.tensor([0, 0, 1]).to(device),
-            torch.tensor([1, 0, 0]).to(device),
-            torch.tensor([0, 1, 0]).to(device),
-            torch.tensor([0, 0, 1]).to(device)
-        ])
-
     def forward(self, x):
         """A preprocess funciton for the YOLO model. The format is: [x1, y1, x2, y2, prob, class].
 
         Args:
             x (tensor): The attribute representation of the train Z of size (batch_size, e, d).
                         e=32 (4*8), number of cars = 4 and numer attributes for each car = 8.
+                            Attributes: [color, length, wall, roof, wheels, load1, load2, load3].
                         d=22, number of classes for each attribute. The format is:
                             [none, yellow, green, grey, red, blue,
                             short, long, braced_wall, solid_wall,
@@ -353,37 +329,50 @@ class MichalskiPreprocess(nn.Module):
         Returns:
             Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
                     e=4 (number of cars),
-                    d=37 (1+4+5+2+2+5+6+6+6) symbolic representation of each car
-                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + load1(6) + load2(6) + load3(6)].
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
                         The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
                                         short, long, braced_wall, solid_wall,
                                         no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
                                         2_wheels, 3_wheels,
-                                        box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
-                                        box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
-                                        box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
                         The probability for each attribute is obtained by copying the probability of the classification of the perception model.
         """
-        color = ['yellow', 'green', 'grey', 'red', 'blue']
-        length = ['short', 'long']
-        walls = ["braced_wall", 'solid_wall']
-        roofs = ["no_roof", "roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
-        wheel_count = ['2_wheels', '3_wheels']
-        load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
-        car_pos = ['1', '2', '3', '4']
 
-        car_pos = torch.zeros(x.size(0), 32, 4)
-        car_pos[:, 0, 0] = 1
-        car_pos[:, 8, 1] = 1
-        car_pos[:, 16, 2] = 1
-        car_pos[:, 24, 3] = 1
-        # a = class_output[0].size()
 
-        a = x[:, :, 0].unsqueeze(2)
+        train = torch.zeros(x.size(0), 4, 42)
+        for i in range(4):
+            # Attributes: [prob, pos, color, length, wall, roof, wheels, load1, load2, load3].
+            #           d=40 (1+4+5+2+2+5+2+7+7+7)
+            # objectness
+            train[:, i, 0] = x[:, 8 * i, 0]
+            # car number
+            train[:, i, i + 1] = 1
+            # color
+            train[:, i, 5:10] = x[:, 8 * i, 1:6]
+            # length
+            train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]
+            # wall
+            train[:, i, 12:14] = x[:, 2 + 8 * i, 8:10]
+            # roof
+            train[:, i, 14] = x[:, 3 + 8 * i, 0]
+            train[:, i, 15:19] = x[:, 3 + 8 * i, 10:14]
+            # wheel count
+            train[:, i, 19:21] = x[:, 4 + 8 * i, 14:16]
+            # load 1
+            train[:, i, 21] = x[:, 5 + 8 * i, 0]
+            train[:, i, 22:28] = x[:, 5 + 8 * i, 16:22]
+            # load 2
+            train[:, i, 28] = x[:, 6 + 8 * i, 0]
+            train[:, i, 29:35] = x[:, 6 + 8 * i, 16:22]
+            # load 3
+            train[:, i, 35] = x[:, 7 + 8 * i, 0]
+            train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
 
-        b = x[:, :, 1:]
-        preds = torch.cat([a, car_pos, b], dim=2)
-        return preds
+        return train
 
         # batch_size = x.size(0)
         # obj_num = x.size(1)
