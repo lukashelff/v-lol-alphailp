@@ -150,7 +150,7 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
         rtpt.step(subtitle=f"loss={loss_i:2.2f}")
         writer.add_scalar("metric/train_loss", loss_i, global_step=epoch)
         print("loss: ", loss_i)
-        #NSFR.print_program()
+        #NSFR.print_program()sdfsdf
         if epoch % 20 == 0:
             NSFR.print_program()
             print("Predicting on validation data set...")

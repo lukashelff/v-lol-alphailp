@@ -255,8 +255,7 @@ class PerceptioModel(nn.Module):
 
     def __init__(self, device, pth):
         super().__init__()
-        resnet = models.resnet18(pretrained=True)
-        checkpoint = torch.load(pth, map_location=device)
+        resnet = models.resnet18()
         layers = list(resnet.children())[:9]
         self.fc = resnet.fc
         self.features1 = nn.Sequential(*layers[:6])
@@ -268,7 +267,7 @@ class PerceptioModel(nn.Module):
         in_features = resnet.inplanes
         for _ in range(4):
             self.classifier.append(nn.Sequential(nn.Linear(in_features=in_features, out_features=all_classes)))
-        self.load_state_dict(checkpoint['model_state_dict'])
+        # self.load_state_dict(torch.load(pth)['model_state_dict'])
 
     def forward(self, x):
         x = self.features1(x)
