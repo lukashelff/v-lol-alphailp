@@ -367,13 +367,16 @@ class MichalskiInValuationFunction(nn.Module):
         """
         Args:
             z (tensor): 2-d tensor (B * D), the object-centric representation.
-                obj_prob + car_number + color + length + wall + roof + wheels + load + load_number
-                [ none, 1,2,3,4,
-                 yellow, green, grey, red, blue,
-                 short, long, braced_wall, solid_wall,
-                 roof_foundation, solid_roof, braced_roof, peaked_roof,
-                 2_wheels, 3_wheels,
-                 box, golden_vase, barrel, diamond, metal_pot, oval_vase]
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
             x (none): A dummy argument to represent the input constant.
 
         Returns:
@@ -393,8 +396,7 @@ class MichalskiCarNumValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -424,8 +426,7 @@ class MichalskiColorValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -455,8 +456,7 @@ class MichalskiLengthValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -484,8 +484,7 @@ class MichalskiWallValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -516,8 +515,7 @@ class MichalskiRoofValuationFunction(nn.Module):
         """
         Args:
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -533,7 +531,7 @@ class MichalskiRoofValuationFunction(nn.Module):
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:, 14:19]
+        z_color = z[:, 14:19]
         return (a * z_color).sum(dim=1)
 
 
@@ -547,8 +545,7 @@ class MichalskiWheelValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -564,7 +561,7 @@ class MichalskiWheelValuationFunction(nn.Module):
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:, 19:21]
+        z_color = z[:, 19:21]
         return (a * z_color).sum(dim=1)
 
 
@@ -578,8 +575,7 @@ class MichalskiLoad1ValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -595,7 +591,7 @@ class MichalskiLoad1ValuationFunction(nn.Module):
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:, 21:28]
+        z_color = z[:, 21:28]
         return (a * z_color).sum(dim=1)
 
 
@@ -609,8 +605,7 @@ class MichalskiLoad2ValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -625,7 +620,7 @@ class MichalskiLoad2ValuationFunction(nn.Module):
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:, 28:35]
+        z_color = z[:, 28:35]
         return (a * z_color).sum(dim=1)
 
 
@@ -639,8 +634,7 @@ class MichalskiLoad3ValuationFunction(nn.Module):
     def forward(self, z, a):
         """
         Args:
-            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
-                    e=4 (number of cars),
+            z (tensor): 2-d tensor (B * D), the object-centric representation.
                     d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
                         [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
                          load2(7) + load3(7)].
@@ -656,7 +650,7 @@ class MichalskiLoad3ValuationFunction(nn.Module):
         Returns:
             A batch of probabilities.
         """
-        z_color = z[:, 0] + z[:, 35:42]
+        z_color = z[:, 35:42]
         return (a * z_color).sum(dim=1)
 
 # class MichalskiLoadNumValuationFunction(nn.Module):

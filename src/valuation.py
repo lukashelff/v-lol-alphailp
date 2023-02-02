@@ -305,23 +305,6 @@ class MichalskiValuationModule(nn.Module):
         """
         layers = []
         vfs = {}  # pred name -> valuation function
-        # v_color = SlotAttentionColorValuationFunction(device)
-        # vfs['color'] = v_color
-        # v_shape = SlotAttentionShapeValuationFunction(device)
-        # vfs['car_num'] = v_shape
-        # v_in = SlotAttentionInValuationFunction(device)
-        # vfs['in'] = v_in
-        # v_size = SlotAttentionSizeValuationFunction(device)
-        # vfs['size'] = v_size
-        # v_material = SlotAttentionMaterialValuationFunction(device)
-        # vfs['material'] = v_material
-        # v_rightside = SlotAttentionRightSideValuationFunction(device)
-        # vfs['rightside'] = v_rightside
-        # v_leftside = SlotAttentionLeftSideValuationFunction(device)
-        # vfs['leftside'] = v_leftside
-        # v_front = SlotAttentionFrontValuationFunction(device)
-        # vfs['front'] = v_front
-
         v_in = MichalskiInValuationFunction(device)
         v_car_num = MichalskiCarNumValuationFunction(device)
         v_color = MichalskiColorValuationFunction(device)

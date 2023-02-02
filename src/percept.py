@@ -346,7 +346,7 @@ class MichalskiPreprocess(nn.Module):
         train = torch.zeros(x.size(0), 4, 42)
         for i in range(4):
             # Attributes: [prob, pos, color, length, wall, roof, wheels, load1, load2, load3].
-            #           d=40 (1+4+5+2+2+5+2+7+7+7)
+            #           d=42 (1+4+5+2+2+5+2+7+7+7)
             # objectness
             train[:, i, 0] = x[:, 8 * i, 0]
             # car number
@@ -373,27 +373,3 @@ class MichalskiPreprocess(nn.Module):
             train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
 
         return train
-
-        # batch_size = x.size(0)
-        # obj_num = x.size(1)
-        # object_list = []
-        # for i in range(obj_num):
-        #     zi = x[:, i]
-        #     class_id = zi[:, -1].to(torch.int64)
-        #     color = self.colors[class_id] * zi[:, -2].unsqueeze(-1)
-        #     shape = self.shapes[class_id] * zi[:, -2].unsqueeze(-1)
-        #
-        #     self.car_nums = ['1', '2', '3', '4']
-        #     self.colors = ["yellow", "green", "grey", "red", "blue"]
-        #     self.lengths = ["short", "long"]
-        #     self.walls = ["full", "braced"]
-        #     self.roofs = ["none", "foundation", "solid_roof", "braced_roof", "peaked_roof"]
-        #     self.wheels = ['2', '3']
-        #     self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
-        #     self.load_nums = ['0', '1', '2', '3']
-        #
-        #     xyxy = zi[:, 0:4] / self.img_size
-        #     prob = zi[:, -2].unsqueeze(-1)
-        #     obj = torch.cat([xyxy, color, shape, prob], dim=-1)
-        #     object_list.append(obj)
-        # return torch.stack(object_list, dim=1).to(self.device)
