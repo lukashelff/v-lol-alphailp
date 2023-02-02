@@ -5,6 +5,5 @@ length:2:car,length
 wall:2:car,wall
 roof:2:car,roof
 wheel:2:car,wheels
-load1:2:car,load
-load2:2:car,load
-load3:2:car,load
+load:2:car,load
+load_num:2:car,load_num

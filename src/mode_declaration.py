@@ -122,8 +122,9 @@ def get_mode_declarations_michalski(lang, obj_num):
     s_wall = ModeTerm('#', DataType('wall'))
     s_roof = ModeTerm('#', DataType('roof'))
     s_wheel = ModeTerm('#', DataType('wheel'))
-    s_load = ModeTerm('#', DataType('load'))
-    s_load_num = ModeTerm('#', DataType('load_num'))
+    s_load1 = ModeTerm('#', DataType('load'))
+    s_load2 = ModeTerm('#', DataType('load'))
+    s_load3 = ModeTerm('#', DataType('load'))
 
     # modeh_1 = ModeDeclaration('head', 'kp', p_image)
 
@@ -140,8 +141,9 @@ def get_mode_declarations_michalski(lang, obj_num):
         ModeDeclaration('body', 2, lang.get_pred_by_name('wall'), [p_car, s_wall]),
         ModeDeclaration('body', 2, lang.get_pred_by_name('roof'), [p_car, s_roof]),
         ModeDeclaration('body', 2, lang.get_pred_by_name('wheel'), [p_car, s_wheel]),
-        ModeDeclaration('body', 2, lang.get_pred_by_name('load'), [p_car, s_load]),
-        ModeDeclaration('body', 2, lang.get_pred_by_name('load_num'), [p_car, s_load_num]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('load1'), [p_car, s_load1]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('load2'), [p_car, s_load2]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('load3'), [p_car, s_load3]),
     ]
     return modeb_list
 

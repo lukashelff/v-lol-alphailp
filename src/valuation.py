@@ -123,7 +123,6 @@ class YOLOValuationModule(nn.Module):
                       str(term) + ':' + term.dtype.name
 
 
-
 class SlotAttentionValuationModule(nn.Module):
     """A module to call valuation functions.
         Attrs:
@@ -276,7 +275,7 @@ class MichalskiValuationModule(nn.Module):
         self.walls = ["full", "braced"]
         self.roofs = ["none", "foundation", "solid_roof", "braced_roof", "peaked_roof"]
         self.wheels = ['2', '3']
-        self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
+        self.loads = ["none", "blue_box", "golden_vase", "barrel", "diamond", "metal_box", "oval_vase"]
         self.load_nums = ['0', '1', '2', '3']
         self.obj_desc = {
             'car_num': self.car_nums,
@@ -286,9 +285,7 @@ class MichalskiValuationModule(nn.Module):
             'roof': self.roofs,
             'wheel': self.wheels,
             'load': self.loads,
-            'load_num': self.load_nums,
         }
-
 
         self.layers, self.vfs = self.init_valuation_functions(
             device, pretrained)
@@ -383,7 +380,6 @@ class MichalskiValuationModule(nn.Module):
             return self.to_onehot_batch(val_idx, len(values), batch_size)
         else:
             assert True, 'Invalid term: ' + str(term)
-
 
     def to_onehot_batch(self, i, length, batch_size):
         """Compute the one-hot encoding that is expanded to the batch size.
