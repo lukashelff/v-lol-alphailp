@@ -340,35 +340,56 @@ class MichalskiPreprocess(nn.Module):
                                         no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
                         The probability for each attribute is obtained by copying the probability of the classification of the perception model.
         """
-
+        # shift min to 0
 
         train = torch.zeros(x.size(0), 4, 42)
         for i in range(4):
+            # preprocess to object-centric car representation with accuracies for each attribute
             # Attributes: [prob, pos, color, length, wall, roof, wheels, load1, load2, load3].
             #           d=42 (1+4+5+2+2+5+2+7+7+7)
-            # objectness
-            train[:, i, 0] = x[:, 8 * i, 0]
+
             # car number
             train[:, i, i + 1] = 1
             # color
             train[:, i, 5:10] = x[:, 8 * i, 1:6]
+            train[:, i, 5:10] -= train[:, i, 5:10].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 5:10] /= train[:, i, 5:10].sum(dim=-1).unsqueeze(-1)
+            # objectness
+            vals = x[:, 8 * i, 0:6]
+            vals -= vals.min(dim=-1)[0].unsqueeze(-1)
+            vals /= vals.sum(dim=-1).unsqueeze(-1)
+            train[:, i, 0] = vals[:, 0]
             # length
             train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]
+            train[:, i, 10:12] -= train[:, i, 10:12].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 10:12] /= train[:, i, 10:12].sum(dim=-1).unsqueeze(-1)
             # wall
             train[:, i, 12:14] = x[:, 2 + 8 * i, 8:10]
+            train[:, i, 12:14] -= train[:, i, 12:14].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 12:14] /= train[:, i, 12:14].sum(dim=-1).unsqueeze(-1)
             # roof
             train[:, i, 14] = x[:, 3 + 8 * i, 0]
             train[:, i, 15:19] = x[:, 3 + 8 * i, 10:14]
+            train[:, i, 14:19] -= train[:, i, 14:19].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 14:19] /= train[:, i, 14:19].sum(dim=-1).unsqueeze(-1)
             # wheel count
             train[:, i, 19:21] = x[:, 4 + 8 * i, 14:16]
+            train[:, i, 19:21] -= train[:, i, 19:21].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 19:21] /= train[:, i, 19:21].sum(dim=-1).unsqueeze(-1)
             # load 1
             train[:, i, 21] = x[:, 5 + 8 * i, 0]
             train[:, i, 22:28] = x[:, 5 + 8 * i, 16:22]
+            train[:, i, 21:28] -= train[:, i, 21:28].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 21:28] /= train[:, i, 21:28].sum(dim=-1).unsqueeze(-1)
             # load 2
             train[:, i, 28] = x[:, 6 + 8 * i, 0]
             train[:, i, 29:35] = x[:, 6 + 8 * i, 16:22]
+            train[:, i, 28:35] -= train[:, i, 29:35].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 28:35] /= train[:, i, 29:35].sum(dim=-1).unsqueeze(-1)
             # load 3
             train[:, i, 35] = x[:, 7 + 8 * i, 0]
             train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
+            train[:, i, 35:42] -= train[:, i, 36:42].min(dim=-1)[0].unsqueeze(-1)
+            train[:, i, 35:42] /= train[:, i, 36:42].sum(dim=-1).unsqueeze(-1)
 
         return train
