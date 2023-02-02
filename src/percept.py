@@ -77,89 +77,6 @@ class YOLOPerceptionModule(nn.Module):
         return torch.stack(padded_list)
 
 
-class MichalskiPerceptionModule(nn.Module):
-    """A perception module using Michalski.
-
-    Attrs:
-        e (int): The maximum number of entities.
-        d (int): The dimension of the object-centric vector.
-        device (device): The device where the model and tensors are loaded.
-        train (bool): The flag if the parameters are trained.
-        preprocess (tensor->tensor): Reshape the yolo output into the unified format of the perceptiom module.
-    """
-
-    def __init__(self, device, e=4, d=32, train=False):
-        super().__init__()
-        self.e = e  # num of entities
-        self.d = d  # num of dimension
-        resnet = models.resnet18(pretrained=True)
-        checkpoint = torch.load('src/weights/michalski/model.pth', map_location=device)
-        layers = list(resnet.children())[:9]
-        self.fc = resnet.fc
-        self.features1 = nn.Sequential(*layers[:6])
-        self.features2 = nn.Sequential(*layers[6:])
-        self.bb = nn.Sequential(nn.BatchNorm1d(512), nn.Linear(512, 4))
-        self.classifier = nn.ModuleList()
-        # shape output, 5 different shaps + absence of car
-        # length output, 2 different lengths + absence of car
-        # wall output, 2 different walls + absence of car represented as index 0
-        # roof output, 4 different roof shapes + absence of car
-        # wheels output, 2 different wheel counts + absence of car
-        # load number output, max 3 payloads min 0
-        # load shape output, 6 different shape + absence of car
-        # if dim_out == 28:
-        #     self.label_num_classes = [6, 3, 3, 5, 3, 4, 7]
-        # else:
-        # all labels can obtain all classes
-        color = ['yellow', 'green', 'grey', 'red', 'blue']
-        length = ['short', 'long']
-        walls = ["braced_wall", 'solid_wall']
-        roofs = ["roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
-        wheel_count = ['2_wheels', '3_wheels']
-        load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']  # correct order
-        # color, length, walls, roofs, wheel_count, load_obj1, load_obj2, load_obj3
-        # none, yellow, green, grey, red, blue,
-        # short, long, braced_wall, solid_wall,
-        # roof_foundation, solid_roof, braced_roof, peaked_roof,
-        # 2_wheels, 3_wheels, box, golden_vase, barrel, diamond, metal_pot, oval_vase
-
-        self.label_num_classes = [22] * 8
-        all_classes = sum(self.label_num_classes)
-        in_features = resnet.inplanes
-        for _ in range(4):
-            self.classifier.append(nn.Sequential(nn.Linear(in_features=in_features, out_features=all_classes)))
-        self.load_state_dict(checkpoint['model_state_dict'])
-
-    def forward(self, x):
-        x = self.features1(x)
-        x = self.features2(x)
-        x = torch.flatten(x, 1)
-
-        soft = nn.Softmax(dim=1)
-
-        class_output = [classifier(x) for classifier in self.classifier]
-        a = class_output[0].size()
-        preds = torch.cat(class_output, dim=1).view(-1, 32, 22)
-        car_pos = torch.zeros(preds.size(0), 32, 4)
-        car_pos[:, 0, 0] = 1
-        car_pos[:, 8, 1] = 1
-        car_pos[:, 16, 2] = 1
-        car_pos[:, 24, 3] = 1
-        a = preds[:,:,0].unsqueeze(2)
-        b = preds[:,:,1:]
-        preds = torch.cat([a, car_pos, b], dim=2)
-
-
-        # preds = []
-        # for output in class_output:
-        #     for i, num_classes in enumerate(self.label_num_classes):
-        #         ind_start = sum(self.label_num_classes[:i])
-        #         ind_end = ind_start + num_classes
-        #         pred = soft(output[:, ind_start:ind_end])
-        #         preds.append(pred)
-        return preds
-
-
 class SlotAttentionPerceptionModule(nn.Module):
     """A perception module using Slot Attention.
 
@@ -281,6 +198,97 @@ class YOLOPreprocess(nn.Module):
         return torch.stack(object_list, dim=1).to(self.device)
 
 
+class MichalskiPerceptionModule(nn.Module):
+    """A perception module using Michalski.
+
+    Attrs:
+        e (int): The maximum number of entities.
+        d (int): The dimension of the object-centric vector.
+        device (device): The device where the model and tensors are loaded.
+        train (bool): The flag if the parameters are trained.
+        preprocess (tensor->tensor): Reshape the yolo output into the unified format of the perceptiom module.
+    """
+
+    # shape output, 5 different shaps + absence of car
+    # length output, 2 different lengths + absence of car
+    # wall output, 2 different walls + absence of car represented as index 0
+    # roof output, 4 different roof shapes + absence of car
+    # wheels output, 2 different wheel counts + absence of car
+    # load number output, max 3 payloads min 0
+    # load shape output, 6 different shape + absence of car
+    # if dim_out == 28:
+    #     self.label_num_classes = [6, 3, 3, 5, 3, 4, 7]
+    # else:
+    # all labels can obtain all classes
+
+    def __init__(self, device, e=4, d=32, train=False):
+        super().__init__()
+        self.e = e  # num of entities
+        self.d = d  # num of dimension
+        self.model = PerceptioModel(device=device, pth='src/weights/michalski/model.pth')
+        self.preprocess = MichalskiPreprocess(device)
+
+    def forward(self, x):
+        preds = self.model(x)
+
+        post = self.preprocess(preds)
+
+        return post
+
+
+class PerceptioModel(nn.Module):
+    """A perception module for Michalski-3D.
+
+    Attrs:
+        device (device): The device where the model and tensors are loaded.
+        pth (str): The path of the pretrained model.
+    Returns:
+        Z (tensor): The attribute representation of the train Z of size (batch_size, e, d).
+                    e=32 (4*8), number of cars = 4 and numer attributes for each car = 8.
+                    d=22, number of classes for each attribute. The format is:
+                            [none, yellow, green, grey, red, blue,
+                            short, long, braced_wall, solid_wall,
+                            roof_foundation, solid_roof, braced_roof, peaked_roof,
+                            2_wheels, 3_wheels, box, golden_vase, barrel, diamond, metal_pot, oval_vase].
+    """
+
+    def __init__(self, device, pth):
+        super().__init__()
+        resnet = models.resnet18(pretrained=True)
+        checkpoint = torch.load(pth, map_location=device)
+        layers = list(resnet.children())[:9]
+        self.fc = resnet.fc
+        self.features1 = nn.Sequential(*layers[:6])
+        self.features2 = nn.Sequential(*layers[6:])
+        self.bb = nn.Sequential(nn.BatchNorm1d(512), nn.Linear(512, 4))
+        self.classifier = nn.ModuleList()
+        self.label_num_classes = [22] * 8
+        all_classes = sum(self.label_num_classes)
+        in_features = resnet.inplanes
+        for _ in range(4):
+            self.classifier.append(nn.Sequential(nn.Linear(in_features=in_features, out_features=all_classes)))
+        self.load_state_dict(checkpoint['model_state_dict'])
+
+    def forward(self, x):
+        x = self.features1(x)
+        x = self.features2(x)
+        x = torch.flatten(x, 1)
+        soft = nn.Softmax(dim=1)
+
+        class_output = [classifier(x) for classifier in self.classifier]
+        preds = torch.cat(class_output, dim=1).view(-1, 32, 22)
+
+        # preds = []
+        # for output in class_output:
+        #     for i, num_classes in enumerate(self.label_num_classes):
+        #         ind_start = sum(self.label_num_classes[:i])
+        #         ind_end = ind_start + num_classes
+        #         pred = soft(output[:, ind_start:ind_end])
+        #         preds.append(pred)
+
+        return preds
+
+
 class MichalskiPreprocess(nn.Module):
     """A perception module using Slot Attention.
 
@@ -335,39 +343,68 @@ class MichalskiPreprocess(nn.Module):
         """A preprocess funciton for the YOLO model. The format is: [x1, y1, x2, y2, prob, class].
 
         Args:
-            x (tensor): The output of the YOLO model. The format is:
-
+            x (tensor): The attribute representation of the train Z of size (batch_size, e, d).
+                        e=32 (4*8), number of cars = 4 and numer attributes for each car = 8.
+                        d=22, number of classes for each attribute. The format is:
+                            [none, yellow, green, grey, red, blue,
+                            short, long, braced_wall, solid_wall,
+                            roof_foundation, solid_roof, braced_roof, peaked_roof,
+                            2_wheels, 3_wheels, box, golden_vase, barrel, diamond, metal_pot, oval_vase].
         Returns:
-            classes: obj_prob + car_number + color + length + wall + roof + load + load_number
-                [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue, short, long, full, braced,
-                 none, foundation, solid_roof, braced_roof, peaked roof, 2,3,
-                 blue_box, golden_vase, barrel, diamond, metal_box, 0,1,2,3]
-
-            Z (tensor): The preprocessed object-centric representation Z. The format is: [x1, y1, x2, y2, color1, color2, color3, shape1, shape2, shape3, objectness].
-            x1,x2,y1,y2 are normalized to [0-1].
-            The probability for each attribute is obtained by copying the probability of the classification of the YOLO model.
+            Z (tensor): The preprocessed object-centric representation Z of the cars, size (batch_size, e, d).
+                    e=4 (number of cars),
+                    d=37 (1+4+5+2+2+5+6+6+6) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + load1(6) + load2(6) + load3(6)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
+                        The probability for each attribute is obtained by copying the probability of the classification of the perception model.
         """
+        color = ['yellow', 'green', 'grey', 'red', 'blue']
+        length = ['short', 'long']
+        walls = ["braced_wall", 'solid_wall']
+        roofs = ["no_roof", "roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
+        wheel_count = ['2_wheels', '3_wheels']
+        load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
+        car_pos = ['1', '2', '3', '4']
 
-        batch_size = x.size(0)
-        obj_num = x.size(1)
-        object_list = []
-        for i in range(obj_num):
-            zi = x[:, i]
-            class_id = zi[:, -1].to(torch.int64)
-            color = self.colors[class_id] * zi[:, -2].unsqueeze(-1)
-            shape = self.shapes[class_id] * zi[:, -2].unsqueeze(-1)
+        car_pos = torch.zeros(x.size(0), 32, 4)
+        car_pos[:, 0, 0] = 1
+        car_pos[:, 8, 1] = 1
+        car_pos[:, 16, 2] = 1
+        car_pos[:, 24, 3] = 1
+        # a = class_output[0].size()
 
-            self.car_nums = ['1', '2', '3', '4']
-            self.colors = ["yellow", "green", "grey", "red", "blue"]
-            self.lengths = ["short", "long"]
-            self.walls = ["full", "braced"]
-            self.roofs = ["none", "foundation", "solid_roof", "braced_roof", "peaked_roof"]
-            self.wheels = ['2', '3']
-            self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
-            self.load_nums = ['0', '1', '2', '3']
+        a = x[:, :, 0].unsqueeze(2)
 
-            xyxy = zi[:, 0:4] / self.img_size
-            prob = zi[:, -2].unsqueeze(-1)
-            obj = torch.cat([xyxy, color, shape, prob], dim=-1)
-            object_list.append(obj)
-        return torch.stack(object_list, dim=1).to(self.device)
+        b = x[:, :, 1:]
+        preds = torch.cat([a, car_pos, b], dim=2)
+        return preds
+
+        # batch_size = x.size(0)
+        # obj_num = x.size(1)
+        # object_list = []
+        # for i in range(obj_num):
+        #     zi = x[:, i]
+        #     class_id = zi[:, -1].to(torch.int64)
+        #     color = self.colors[class_id] * zi[:, -2].unsqueeze(-1)
+        #     shape = self.shapes[class_id] * zi[:, -2].unsqueeze(-1)
+        #
+        #     self.car_nums = ['1', '2', '3', '4']
+        #     self.colors = ["yellow", "green", "grey", "red", "blue"]
+        #     self.lengths = ["short", "long"]
+        #     self.walls = ["full", "braced"]
+        #     self.roofs = ["none", "foundation", "solid_roof", "braced_roof", "peaked_roof"]
+        #     self.wheels = ['2', '3']
+        #     self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
+        #     self.load_nums = ['0', '1', '2', '3']
+        #
+        #     xyxy = zi[:, 0:4] / self.img_size
+        #     prob = zi[:, -2].unsqueeze(-1)
+        #     obj = torch.cat([xyxy, color, shape, prob], dim=-1)
+        #     object_list.append(obj)
+        # return torch.stack(object_list, dim=1).to(self.device)
