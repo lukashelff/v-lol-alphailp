@@ -225,6 +225,7 @@ class MichalskiPerceptionModule(nn.Module):
         super().__init__()
         self.e = e  # num of entities
         self.d = d  # num of dimension
+        self.device = device
         self.model = PerceptioModel(device=device, pth='src/weights/michalski/model.pth')
         self.preprocess = MichalskiPreprocess(device)
 
@@ -232,8 +233,8 @@ class MichalskiPerceptionModule(nn.Module):
         activations, preds = self.model(x)
 
         post = self.preprocess(activations)
-        a = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
-        b = post.detach().cpu().numpy()
+        # a = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
+        # b = post.detach().cpu().numpy()
 
         return post
 
@@ -270,16 +271,15 @@ class PerceptioModel(nn.Module):
         for _ in range(4):
             self.classifier.append(nn.Sequential(nn.Linear(in_features=in_features, out_features=all_classes)))
         self.load_state_dict(torch.load(pth, map_location=device)['model_state_dict'])
+        self.to(device)
 
     def forward(self, x):
         x = self.features1(x)
         x = self.features2(x)
         x = torch.flatten(x, 1)
         soft = nn.Softmax(dim=1)
-
         class_output = [classifier(x) for classifier in self.classifier]
         activations = torch.cat(class_output, dim=1).view(-1, 32, 22)
-
         preds = []
         for output in class_output:
             for i, num_classes in enumerate(self.label_num_classes):
@@ -287,7 +287,6 @@ class PerceptioModel(nn.Module):
                 ind_end = ind_start + num_classes
                 pred = soft(output[:, ind_start:ind_end])
                 preds.append(pred)
-
         return activations, preds
 
 
@@ -345,7 +344,7 @@ class MichalskiPreprocess(nn.Module):
         # shift min to 0
         soft = nn.Softmax(dim=-1)
 
-        train = torch.zeros(x.size(0), 4, 42)
+        train = torch.zeros(x.size(0), 4, 42).to(self.device)
         for i in range(4):
             # preprocess to object-centric car representation with accuracies for each attribute
             # Attributes: [prob, pos, color, length, wall, roof, wheels, load1, load2, load3].
@@ -394,5 +393,4 @@ class MichalskiPreprocess(nn.Module):
             train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
             train[:, i, 35:42] -= train[:, i, 36:42].min(dim=-1)[0].unsqueeze(-1)
             train[:, i, 35:42] /= train[:, i, 36:42].sum(dim=-1).unsqueeze(-1)
-
         return train
