@@ -229,9 +229,11 @@ class MichalskiPerceptionModule(nn.Module):
         self.preprocess = MichalskiPreprocess(device)
 
     def forward(self, x):
-        preds = self.model(x)
+        activations, preds = self.model(x)
 
-        post = self.preprocess(preds)
+        post = self.preprocess(activations)
+        a = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
+        b = post.detach().cpu().numpy()
 
         return post
 
@@ -247,10 +249,10 @@ class PerceptioModel(nn.Module):
                     e=32 (4*8), number of cars = 4 and numer attributes for each car = 8.
                             Attributes: [color, length, wall, roof, wheels, load1, load2, load3].
                     d=22, number of classes for each attribute. The format is:
-                            [none, yellow, green, grey, red, blue,
-                            short, long, braced_wall, solid_wall,
-                            roof_foundation, solid_roof, braced_roof, peaked_roof,
-                            2_wheels, 3_wheels, box, golden_vase, barrel, diamond, metal_pot, oval_vase].
+                            [none (0), yellow (1), green(2), grey(3), red(4), blue(5),
+                            short(6), long(7), braced_wall(8), solid_wall(9),
+                            roof_foundation(10), solid_roof(11), braced_roof(12), peaked_roof(13),2_wheels(14), 3_wheels(15),
+                            box(16), golden_vase(17), barrel(18), diamond(19), metal_pot(20), oval_vase(21)].
     """
 
     def __init__(self, device, pth):
@@ -267,7 +269,7 @@ class PerceptioModel(nn.Module):
         in_features = resnet.inplanes
         for _ in range(4):
             self.classifier.append(nn.Sequential(nn.Linear(in_features=in_features, out_features=all_classes)))
-        # self.load_state_dict(torch.load(pth)['model_state_dict'])
+        self.load_state_dict(torch.load(pth, map_location=device)['model_state_dict'])
 
     def forward(self, x):
         x = self.features1(x)
@@ -276,17 +278,17 @@ class PerceptioModel(nn.Module):
         soft = nn.Softmax(dim=1)
 
         class_output = [classifier(x) for classifier in self.classifier]
-        preds = torch.cat(class_output, dim=1).view(-1, 32, 22)
+        activations = torch.cat(class_output, dim=1).view(-1, 32, 22)
 
-        # preds = []
-        # for output in class_output:
-        #     for i, num_classes in enumerate(self.label_num_classes):
-        #         ind_start = sum(self.label_num_classes[:i])
-        #         ind_end = ind_start + num_classes
-        #         pred = soft(output[:, ind_start:ind_end])
-        #         preds.append(pred)
+        preds = []
+        for output in class_output:
+            for i, num_classes in enumerate(self.label_num_classes):
+                ind_start = sum(self.label_num_classes[:i])
+                ind_end = ind_start + num_classes
+                pred = soft(output[:, ind_start:ind_end])
+                preds.append(pred)
 
-        return preds
+        return activations, preds
 
 
 class MichalskiPreprocess(nn.Module):
@@ -341,6 +343,7 @@ class MichalskiPreprocess(nn.Module):
                         The probability for each attribute is obtained by copying the probability of the classification of the perception model.
         """
         # shift min to 0
+        soft = nn.Softmax(dim=-1)
 
         train = torch.zeros(x.size(0), 4, 42)
         for i in range(4):
@@ -357,7 +360,7 @@ class MichalskiPreprocess(nn.Module):
             # objectness
             vals = x[:, 8 * i, 0:6]
             vals -= vals.min(dim=-1)[0].unsqueeze(-1)
-            vals /= vals.sum(dim=-1).unsqueeze(-1)
+            vals /= vals[:, 0].unsqueeze(-1) + vals[:, 1:].max(dim=-1)[0].unsqueeze(-1)
             train[:, i, 0] = vals[:, 0]
             # length
             train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]

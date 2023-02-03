@@ -44,7 +44,7 @@ class ClauseGenerator(object):
         for b in attr_body:
             dtypes = b.pred.dtypes
             for i, term in enumerate(b.terms):
-                if dtypes[i].name == 'object' and term.is_var():
+                if (dtypes[i].name == 'object' or dtypes[i].name == 'car') and term.is_var():
                     attr_vars.append(term)
 
         attr_vars = list(set(attr_vars))
@@ -76,6 +76,8 @@ class ClauseGenerator(object):
         if self.no_xil:
             return False
         if self.args.dataset_type == 'kandinsky':
+            return False
+        if self.args.dataset_type == 'michalski':
             return False
         else:
             if self.args.dataset == 'clevr-hans0':
