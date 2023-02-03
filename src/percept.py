@@ -230,13 +230,73 @@ class MichalskiPerceptionModule(nn.Module):
         self.preprocess = MichalskiPreprocess(device)
 
     def forward(self, x):
-        activations, preds = self.model(x)
+        activations = self.model(x)
 
         post = self.preprocess(activations)
         # a = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
         # b = post.detach().cpu().numpy()
 
         return post
+
+    def predict_train(self, x):
+        color = ['yellow', 'green', 'grey', 'red', 'blue']
+        length = ['short', 'long']
+        walls = ["braced_wall", 'solid_wall']
+        roofs = ["roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
+        wheel_count = ['2_wheels', '3_wheels']
+        load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
+        attribute_classes = ['none'] + color + length + walls + roofs + wheel_count + load_obj
+        attributes = ['color', 'length', 'wall', 'roof', 'wheels', 'load1', 'load2', 'load3']
+
+        activations = self.model(x)
+        preds = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
+        for i in range(preds.shape[0]):
+            print("Train", i)
+            for j in range(preds.shape[1] // 8):
+                car = 'Car' + str(j) + ': '
+                for k in range(8):
+                    car += attributes[k] + '(' + attribute_classes[preds[i, j * 8 + k]] + ')'
+                    car += ', ' if k < 7 else ''
+                print(car)
+
+    def print_train(self, x):
+        ''' x (B*E*D)
+                    e=4 (number of cars),
+                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                         load2(7) + load3(7)].
+                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                        short, long, braced_wall, solid_wall,
+                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                        2_wheels, 3_wheels,
+                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
+        '''
+        car_num = ['1', '2', '3', '4']
+        color = ['yellow', 'green', 'grey', 'red', 'blue']
+        length = ['short', 'long']
+        walls = ["braced_wall", 'solid_wall']
+        roofs = ["none", "roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
+        wheel_count = ['2_wheels', '3_wheels']
+        load_obj = ['none', "box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
+        for i in range(x.shape[0]):
+            print("Train", i)
+            for j in range(x.shape[1]):
+                if x[i, j, 0] < 0.5:
+                    print("Car", j, "No car")
+                else:
+                    car = 'Car' + str(j) + ': '
+                    car += 'car_number(' + car_num[torch.max(x[i, j, 1:5], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'color(' + color[torch.max(x[i, j, 5:10], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'length(' + length[torch.max(x[i, j, 10:12], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'wall(' + walls[torch.max(x[i, j, 12:14], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'roof(' + roofs[torch.max(x[i, j, 14:19], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'wheels(' + wheel_count[torch.max(x[i, j, 19:21], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'load1(' + load_obj[torch.max(x[i, j, 21:28], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'load2(' + load_obj[torch.max(x[i, j, 28:35], dim=-1)[1].detach().cpu().numpy()] + '), '
+                    car += 'load3(' + load_obj[torch.max(x[i, j, 35:42], dim=-1)[1].detach().cpu().numpy()] + ')'
+                    print(car)
 
 
 class PerceptioModel(nn.Module):
@@ -280,14 +340,14 @@ class PerceptioModel(nn.Module):
         soft = nn.Softmax(dim=1)
         class_output = [classifier(x) for classifier in self.classifier]
         activations = torch.cat(class_output, dim=1).view(-1, 32, 22)
-        preds = []
-        for output in class_output:
-            for i, num_classes in enumerate(self.label_num_classes):
-                ind_start = sum(self.label_num_classes[:i])
-                ind_end = ind_start + num_classes
-                pred = soft(output[:, ind_start:ind_end])
-                preds.append(pred)
-        return activations, preds
+        # preds = []
+        # for output in class_output:
+        #     for i, num_classes in enumerate(self.label_num_classes):
+        #         ind_start = sum(self.label_num_classes[:i])
+        #         ind_end = ind_start + num_classes
+        #         pred = soft(output[:, ind_start:ind_end])
+        #         preds.append(pred)
+        return activations
 
 
 class MichalskiPreprocess(nn.Module):
@@ -360,7 +420,7 @@ class MichalskiPreprocess(nn.Module):
             vals = x[:, 8 * i, 0:6]
             vals -= vals.min(dim=-1)[0].unsqueeze(-1)
             vals /= vals[:, 0].unsqueeze(-1) + vals[:, 1:].max(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 0] = vals[:, 0]
+            train[:, i, 0] = 1 - vals[:, 0]
             # length
             train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]
             train[:, i, 10:12] -= train[:, i, 10:12].min(dim=-1)[0].unsqueeze(-1)
