@@ -99,7 +99,7 @@ class MICHALSKI(torch.utils.data.Dataset):
         self.split = split
         self.transform = transforms.Compose(
             [transforms.ToTensor(),
-             transforms.Resize((img_size, img_size)),
+             # transforms.Resize((img_size, img_size)),
              transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                   std=[0.229, 0.224, 0.225]),
              ])
@@ -136,7 +136,7 @@ class MICHALSKI_POSITIVE(torch.utils.data.Dataset):
         self.split = split
         self.transform = transforms.Compose(
             [transforms.ToTensor(),
-             transforms.Resize((img_size, img_size)),
+             # transforms.Resize((img_size, img_size)),
              transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                   std=[0.229, 0.224, 0.225]), ]
         )

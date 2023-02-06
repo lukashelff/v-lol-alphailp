@@ -4,8 +4,8 @@ import numpy as np
 from sklearn.metrics import accuracy_score, recall_score, roc_curve
 
 import torch
-
 from torch.utils.tensorboard import SummaryWriter
+
 from tqdm import tqdm
 from rtpt import RTPT
 

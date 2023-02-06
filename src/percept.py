@@ -230,11 +230,26 @@ class MichalskiPerceptionModule(nn.Module):
         self.preprocess = MichalskiPreprocess(device)
 
     def forward(self, x):
+        from torchvision.transforms import transforms
+
+
+
         activations = self.model(x)
 
         post = self.preprocess(activations)
         # a = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
         # b = post.detach().cpu().numpy()
+        invTrans = transforms.Compose([transforms.Normalize(mean=[0., 0., 0.],
+                                                            std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
+                                       transforms.Normalize(mean=[-0.485, -0.456, -0.406],
+                                                            std=[1., 1., 1.]),
+                                       ])
+        from matplotlib import pyplot as plt
+        plt.imshow(invTrans(x)[0].permute(1, 2, 0))
+        plt.savefig("im1.png")
+        self.predict_train(x)
+        self.print_train(post)
+
 
         return post
 
@@ -258,6 +273,7 @@ class MichalskiPerceptionModule(nn.Module):
                     car += attributes[k] + '(' + attribute_classes[preds[i, j * 8 + k]] + ')'
                     car += ', ' if k < 7 else ''
                 print(car)
+
 
     def print_train(self, x):
         ''' x (B*E*D)
