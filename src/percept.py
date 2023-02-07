@@ -3,6 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 from torchvision import models
+# from torchvision.models import ResNet18_Weights
 
 from yolov5.models.experimental import attempt_load
 from yolov5.utils.general import non_max_suppression
@@ -226,96 +227,25 @@ class MichalskiPerceptionModule(nn.Module):
         self.e = e  # num of entities
         self.d = d  # num of dimension
         self.device = device
-        self.model = PerceptioModel(device=device, pth='src/weights/michalski/model.pth')
+        model = models.resnet18(pretrained=True)
+        self.model = MultiLabelNN(backbone=model)
+        weights = torch.load(f='src/weights/michalski/model.pth', map_location=device)
+        self.model.load_state_dict(weights['model_state_dict'])
+        self.model.eval()
+        self.to(device)
         self.preprocess = MichalskiPreprocess(device)
 
     def forward(self, x):
         from torchvision.transforms import transforms
 
-
-
         activations = self.model(x)
-
         post = self.preprocess(activations)
-        # a = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
-        # b = post.detach().cpu().numpy()
-        invTrans = transforms.Compose([transforms.Normalize(mean=[0., 0., 0.],
-                                                            std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
-                                       transforms.Normalize(mean=[-0.485, -0.456, -0.406],
-                                                            std=[1., 1., 1.]),
-                                       ])
-        from matplotlib import pyplot as plt
-        plt.imshow(invTrans(x)[0].permute(1, 2, 0))
-        plt.savefig("im1.png")
-        self.predict_train(x)
-        self.print_train(post)
-
+        # print_pred(activations)
 
         return post
 
-    def predict_train(self, x):
-        color = ['yellow', 'green', 'grey', 'red', 'blue']
-        length = ['short', 'long']
-        walls = ["braced_wall", 'solid_wall']
-        roofs = ["roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
-        wheel_count = ['2_wheels', '3_wheels']
-        load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
-        attribute_classes = ['none'] + color + length + walls + roofs + wheel_count + load_obj
-        attributes = ['color', 'length', 'wall', 'roof', 'wheels', 'load1', 'load2', 'load3']
 
-        activations = self.model(x)
-        preds = torch.max(activations, dim=-1)[1].detach().cpu().numpy()
-        for i in range(preds.shape[0]):
-            print("Train", i)
-            for j in range(preds.shape[1] // 8):
-                car = 'Car' + str(j) + ': '
-                for k in range(8):
-                    car += attributes[k] + '(' + attribute_classes[preds[i, j * 8 + k]] + ')'
-                    car += ', ' if k < 7 else ''
-                print(car)
-
-
-    def print_train(self, x):
-        ''' x (B*E*D)
-                    e=4 (number of cars),
-                    d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
-                        [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
-                         load2(7) + load3(7)].
-                        The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
-                                        short, long, braced_wall, solid_wall,
-                                        no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
-                                        2_wheels, 3_wheels,
-                                        no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
-                                        no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
-                                        no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
-        '''
-        car_num = ['1', '2', '3', '4']
-        color = ['yellow', 'green', 'grey', 'red', 'blue']
-        length = ['short', 'long']
-        walls = ["braced_wall", 'solid_wall']
-        roofs = ["none", "roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
-        wheel_count = ['2_wheels', '3_wheels']
-        load_obj = ['none', "box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
-        for i in range(x.shape[0]):
-            print("Train", i)
-            for j in range(x.shape[1]):
-                if x[i, j, 0] < 0.5:
-                    print("Car", j, "No car")
-                else:
-                    car = 'Car' + str(j) + ': '
-                    car += 'car_number(' + car_num[torch.max(x[i, j, 1:5], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'color(' + color[torch.max(x[i, j, 5:10], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'length(' + length[torch.max(x[i, j, 10:12], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'wall(' + walls[torch.max(x[i, j, 12:14], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'roof(' + roofs[torch.max(x[i, j, 14:19], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'wheels(' + wheel_count[torch.max(x[i, j, 19:21], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'load1(' + load_obj[torch.max(x[i, j, 21:28], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'load2(' + load_obj[torch.max(x[i, j, 28:35], dim=-1)[1].detach().cpu().numpy()] + '), '
-                    car += 'load3(' + load_obj[torch.max(x[i, j, 35:42], dim=-1)[1].detach().cpu().numpy()] + ')'
-                    print(car)
-
-
-class PerceptioModel(nn.Module):
+class MultiLabelNN(nn.Module):
     """A perception module for Michalski-3D.
 
     Attrs:
@@ -331,23 +261,19 @@ class PerceptioModel(nn.Module):
                             roof_foundation(10), solid_roof(11), braced_roof(12), peaked_roof(13),2_wheels(14), 3_wheels(15),
                             box(16), golden_vase(17), barrel(18), diamond(19), metal_pot(20), oval_vase(21)].
     """
-
-    def __init__(self, device, pth):
-        super().__init__()
-        resnet = models.resnet18()
-        layers = list(resnet.children())[:9]
-        self.fc = resnet.fc
+    def __init__(self, backbone):
+        super(MultiLabelNN, self).__init__()
+        layers = list(backbone.children())[:9]
+        self.fc = backbone.fc
         self.features1 = nn.Sequential(*layers[:6])
         self.features2 = nn.Sequential(*layers[6:])
         self.bb = nn.Sequential(nn.BatchNorm1d(512), nn.Linear(512, 4))
         self.classifier = nn.ModuleList()
         self.label_num_classes = [22] * 8
         all_classes = sum(self.label_num_classes)
-        in_features = resnet.inplanes
+        in_features = backbone.inplanes
         for _ in range(4):
             self.classifier.append(nn.Sequential(nn.Linear(in_features=in_features, out_features=all_classes)))
-        self.load_state_dict(torch.load(pth, map_location=device)['model_state_dict'])
-        self.to(device)
 
     def forward(self, x):
         x = self.features1(x)
@@ -470,3 +396,79 @@ class MichalskiPreprocess(nn.Module):
             train[:, i, 35:42] -= train[:, i, 36:42].min(dim=-1)[0].unsqueeze(-1)
             train[:, i, 35:42] /= train[:, i, 36:42].sum(dim=-1).unsqueeze(-1)
         return train
+
+
+def show_torch_im(x, name="im.png"):
+    from torchvision.transforms import transforms
+    invTrans = transforms.Compose([transforms.Normalize(mean=[0., 0., 0.],
+                                                        std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
+                                   transforms.Normalize(mean=[-0.485, -0.456, -0.406],
+                                                        std=[1., 1., 1.]),
+                                   ])
+    from matplotlib import pyplot as plt
+    t = invTrans(x)
+    for i in range(t.size(0)):
+        plt.imshow(t[i].permute(1, 2, 0).detach().cpu().numpy())
+        plt.savefig(f'{name}_{i}.png')
+        plt.show()
+
+
+def print_pred(outputs):
+    color = ['yellow', 'green', 'grey', 'red', 'blue']
+    length = ['short', 'long']
+    walls = ["braced_wall", 'solid_wall']
+    roofs = ["roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
+    wheel_count = ['2_wheels', '3_wheels']
+    load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
+    attribute_classes = ['none'] + color + length + walls + roofs + wheel_count + load_obj
+    attributes = ['color', 'length', 'wall', 'roof', 'wheels', 'load1', 'load2', 'load3']
+    preds = torch.max(outputs, dim=2)[1]
+    preds = preds.T if preds.shape[0] == 32 else preds
+    for i in range(preds.shape[0]):
+        print("Train", i)
+        for j in range(preds.shape[1] // 8):
+            car = 'Car' + str(j) + ': '
+            for k in range(8):
+                car += attributes[k] + '(' + attribute_classes[preds[i, j * 8 + k]] + f'{preds[i, j * 8 + k]})'
+                car += ', ' if k < 7 else ''
+            print(car)
+
+
+def print_proccessed(x):
+    ''' x (B*E*D)
+                e=4 (number of cars),
+                d=42 (1+4+5+2+2+5+2+7+7+7) symbolic representation of each car
+                    [obj_prob(1) + car_number(4) + color(5) + length(2) + wall(2) + roof(5) + wheels(2) + load1(7) +
+                     load2(7) + load3(7)].
+                    The format is: [objectness, 1, 2, 3, 4, yellow, green, grey, red, blue,
+                                    short, long, braced_wall, solid_wall,
+                                    no_roof, roof_foundation, solid_roof, braced_roof, peaked_roof,
+                                    2_wheels, 3_wheels,
+                                    no_load1, box1, golden_vase1, barrel1, diamond1, metal_pot1, oval_vase1,
+                                    no_load2, box2, golden_vase2, barrel2, diamond2, metal_pot2, oval_vase2,
+                                    no_load3, box3, golden_vase3, barrel3, diamond3, metal_pot3, oval_vase3].
+    '''
+    car_num = ['1', '2', '3', '4']
+    color = ['yellow', 'green', 'grey', 'red', 'blue']
+    length = ['short', 'long']
+    walls = ["braced_wall", 'solid_wall']
+    roofs = ["none", "roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
+    wheel_count = ['2_wheels', '3_wheels']
+    load_obj = ['none', "box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
+    for i in range(x.shape[0]):
+        print("Train", i)
+        for j in range(x.shape[1]):
+            if x[i, j, 0] < 0.5:
+                print("Car", j, "No car")
+            else:
+                car = 'Car' + str(j) + ': '
+                car += 'car_number(' + car_num[torch.max(x[i, j, 1:5], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'color(' + color[torch.max(x[i, j, 5:10], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'length(' + length[torch.max(x[i, j, 10:12], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'wall(' + walls[torch.max(x[i, j, 12:14], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'roof(' + roofs[torch.max(x[i, j, 14:19], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'wheels(' + wheel_count[torch.max(x[i, j, 19:21], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'load1(' + load_obj[torch.max(x[i, j, 21:28], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'load2(' + load_obj[torch.max(x[i, j, 28:35], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += 'load3(' + load_obj[torch.max(x[i, j, 35:42], dim=-1)[1].detach().cpu().numpy()] + ')'
+                print(car)

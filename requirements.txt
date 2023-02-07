@@ -1,5 +1,5 @@
 ### NSFR
-torch==1.8.1
+torch
 lark-parser
 scikit_learn
 torchsummary
