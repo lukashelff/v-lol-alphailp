@@ -174,6 +174,7 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
 
 
 def main(n):
+    # torch.autograd.set_detect_anomaly(True)
     args = get_args()
     if args.dataset_type == 'kandinsky':
         if args.small_data:

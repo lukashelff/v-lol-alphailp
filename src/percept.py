@@ -227,7 +227,7 @@ class MichalskiPerceptionModule(nn.Module):
         self.e = e  # num of entities
         self.d = d  # num of dimension
         self.device = device
-        model = models.resnet18(pretrained=True)
+        model = models.resnet18()
         self.model = MultiLabelNN(backbone=model)
         weights = torch.load(f='src/weights/michalski/model.pth', map_location=device)
         self.model.load_state_dict(weights['model_state_dict'])
@@ -236,11 +236,13 @@ class MichalskiPerceptionModule(nn.Module):
         self.preprocess = MichalskiPreprocess(device)
 
     def forward(self, x):
-        from torchvision.transforms import transforms
-
         activations = self.model(x)
         post = self.preprocess(activations)
+
+        # print activations and image to check if the model is working
         # print_pred(activations)
+        # show_torch_im(x)
+        # raise Exception('stop')
 
         return post
 
@@ -261,6 +263,7 @@ class MultiLabelNN(nn.Module):
                             roof_foundation(10), solid_roof(11), braced_roof(12), peaked_roof(13),2_wheels(14), 3_wheels(15),
                             box(16), golden_vase(17), barrel(18), diamond(19), metal_pot(20), oval_vase(21)].
     """
+
     def __init__(self, backbone):
         super(MultiLabelNN, self).__init__()
         layers = list(backbone.children())[:9]
@@ -279,16 +282,8 @@ class MultiLabelNN(nn.Module):
         x = self.features1(x)
         x = self.features2(x)
         x = torch.flatten(x, 1)
-        soft = nn.Softmax(dim=1)
         class_output = [classifier(x) for classifier in self.classifier]
         activations = torch.cat(class_output, dim=1).view(-1, 32, 22)
-        # preds = []
-        # for output in class_output:
-        #     for i, num_classes in enumerate(self.label_num_classes):
-        #         ind_start = sum(self.label_num_classes[:i])
-        #         ind_end = ind_start + num_classes
-        #         pred = soft(output[:, ind_start:ind_end])
-        #         preds.append(pred)
         return activations
 
 
@@ -303,7 +298,7 @@ class MichalskiPreprocess(nn.Module):
         shapes (tensor(int)): The one-hot encodings of the shapes (repeated 3 times).
     """
 
-    def __init__(self, device, img_size=128):
+    def __init__(self, device, img_size=128, normalize='softmax'):
         super().__init__()
         self.device = device
         self.img_size = img_size
@@ -315,6 +310,7 @@ class MichalskiPreprocess(nn.Module):
         self.wheels = ['2', '3']
         self.loads = ["blue_box", "golden_vase", "barrel", "diamond", "metal_box"]
         self.load_nums = ['0', '1', '2', '3']
+        self.normalize = normalize
 
     def forward(self, x):
         """A preprocess funciton for the YOLO model. The format is: [x1, y1, x2, y2, prob, class].
@@ -354,51 +350,62 @@ class MichalskiPreprocess(nn.Module):
 
             # car number
             train[:, i, i + 1] = 1
-            # color
-            train[:, i, 5:10] = x[:, 8 * i, 1:6]
-            train[:, i, 5:10] -= train[:, i, 5:10].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 5:10] /= train[:, i, 5:10].sum(dim=-1).unsqueeze(-1)
-            # objectness
-            vals = x[:, 8 * i, 0:6]
-            vals -= vals.min(dim=-1)[0].unsqueeze(-1)
-            vals /= vals[:, 0].unsqueeze(-1) + vals[:, 1:].max(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 0] = 1 - vals[:, 0]
-            # length
-            train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]
-            train[:, i, 10:12] -= train[:, i, 10:12].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 10:12] /= train[:, i, 10:12].sum(dim=-1).unsqueeze(-1)
-            # wall
-            train[:, i, 12:14] = x[:, 2 + 8 * i, 8:10]
-            train[:, i, 12:14] -= train[:, i, 12:14].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 12:14] /= train[:, i, 12:14].sum(dim=-1).unsqueeze(-1)
             # roof
             train[:, i, 14] = x[:, 3 + 8 * i, 0]
             train[:, i, 15:19] = x[:, 3 + 8 * i, 10:14]
-            train[:, i, 14:19] -= train[:, i, 14:19].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 14:19] /= train[:, i, 14:19].sum(dim=-1).unsqueeze(-1)
-            # wheel count
-            train[:, i, 19:21] = x[:, 4 + 8 * i, 14:16]
-            train[:, i, 19:21] -= train[:, i, 19:21].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 19:21] /= train[:, i, 19:21].sum(dim=-1).unsqueeze(-1)
             # load 1
             train[:, i, 21] = x[:, 5 + 8 * i, 0]
             train[:, i, 22:28] = x[:, 5 + 8 * i, 16:22]
-            train[:, i, 21:28] -= train[:, i, 21:28].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 21:28] /= train[:, i, 21:28].sum(dim=-1).unsqueeze(-1)
             # load 2
             train[:, i, 28] = x[:, 6 + 8 * i, 0]
             train[:, i, 29:35] = x[:, 6 + 8 * i, 16:22]
-            train[:, i, 28:35] -= train[:, i, 29:35].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 28:35] /= train[:, i, 29:35].sum(dim=-1).unsqueeze(-1)
             # load 3
             train[:, i, 35] = x[:, 7 + 8 * i, 0]
             train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
-            train[:, i, 35:42] -= train[:, i, 36:42].min(dim=-1)[0].unsqueeze(-1)
-            train[:, i, 35:42] /= train[:, i, 36:42].sum(dim=-1).unsqueeze(-1)
+            if self.normalize == 'softmax':
+                # color
+                train[:, i, 0] = 1 - soft(x[:, 8 * i, 0:6])[:, 0]
+                # color
+                train[:, i, 5:10] = soft(x[:, 8 * i, 1:6])
+                # length
+                train[:, i, 10:12] = soft(x[:, 1 + 8 * i, 6:8])
+                # wall
+                train[:, i, 12:14] = soft(x[:, 2 + 8 * i, 8:10])
+                # roof
+                train[:, i, 14:19] = soft(train[:, i, 14:19])
+                # wheel count
+                train[:, i, 19:21] = soft(x[:, 4 + 8 * i, 14:16])
+                # load 1
+                train[:, i, 21:28] = soft(train[:, i, 21:28])
+                # load 2
+                train[:, i, 28:35] = soft(train[:, i, 28:35])
+                # load 3
+                train[:, i, 35:42] = soft(train[:, i, 35:42])
+            elif self.normalize == 'norm':
+                train[:, i, 0] = 1 - soft(x[:, 8 * i, 0:6])[:, 0]
+                train[:, i, 5:10] = shift_normalize(x[:, 8 * i, 1:6])
+                train[:, i, 10:12] = shift_normalize(x[:, 1 + 8 * i, 6:8])
+                train[:, i, 12:14] = shift_normalize(x[:, 2 + 8 * i, 8:10])
+                train[:, i, 14:19] = shift_normalize(train[:, i, 14:19])
+                train[:, i, 19:21] = shift_normalize(x[:, 4 + 8 * i, 14:16])
+                train[:, i, 21:28] = shift_normalize(train[:, i, 21:28])
+                train[:, i, 28:35] = shift_normalize(train[:, i, 28:35])
+                train[:, i, 35:42] = shift_normalize(train[:, i, 35:42])
+            else:
+                raise ValueError("Unknown normalization method: {}".format(self.normalize))
         return train
 
 
-def show_torch_im(x, name="im.png"):
+def shift_normalize(x):
+    ''' Shifts the minimum value to 0 and normalizes the values to sum to 1.
+    Args: x (tensor): The tensor to normalize.
+    Returns: (tensor): The normalized tensor.
+    '''
+    shifted = x - x.min(dim=-1)[0].unsqueeze(-1)
+    return shifted / shifted.sum(dim=-1).unsqueeze(-1)
+
+
+def show_torch_im(x, name="image"):
     from torchvision.transforms import transforms
     invTrans = transforms.Compose([transforms.Normalize(mean=[0., 0., 0.],
                                                         std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
