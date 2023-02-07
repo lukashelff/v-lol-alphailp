@@ -298,7 +298,7 @@ class MichalskiPreprocess(nn.Module):
         shapes (tensor(int)): The one-hot encodings of the shapes (repeated 3 times).
     """
 
-    def __init__(self, device, img_size=128, normalize='softmax'):
+    def __init__(self, device, img_size=128, normalize='norm'):
         super().__init__()
         self.device = device
         self.img_size = img_size
@@ -341,6 +341,7 @@ class MichalskiPreprocess(nn.Module):
         """
         # shift min to 0
         soft = nn.Softmax(dim=-1)
+        softmin = nn.Softmin(dim=-1)
 
         train = torch.zeros(x.size(0), 4, 42).to(self.device)
         for i in range(4):
@@ -350,18 +351,18 @@ class MichalskiPreprocess(nn.Module):
 
             # car number
             train[:, i, i + 1] = 1
-            # roof
-            train[:, i, 14] = x[:, 3 + 8 * i, 0]
-            train[:, i, 15:19] = x[:, 3 + 8 * i, 10:14]
-            # load 1
-            train[:, i, 21] = x[:, 5 + 8 * i, 0]
-            train[:, i, 22:28] = x[:, 5 + 8 * i, 16:22]
-            # load 2
-            train[:, i, 28] = x[:, 6 + 8 * i, 0]
-            train[:, i, 29:35] = x[:, 6 + 8 * i, 16:22]
-            # load 3
-            train[:, i, 35] = x[:, 7 + 8 * i, 0]
-            train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
+            # # roof
+            # train[:, i, 14] = x[:, 3 + 8 * i, 0]
+            # train[:, i, 15:19] = x[:, 3 + 8 * i, 10:14]
+            # # load 1
+            # train[:, i, 21] = x[:, 5 + 8 * i, 0]
+            # train[:, i, 22:28] = x[:, 5 + 8 * i, 16:22]
+            # # load 2
+            # train[:, i, 28] = x[:, 6 + 8 * i, 0]
+            # train[:, i, 29:35] = x[:, 6 + 8 * i, 16:22]
+            # # load 3
+            # train[:, i, 35] = x[:, 7 + 8 * i, 0]
+            # train[:, i, 36:42] = x[:, 7 + 8 * i, 16:22]
             if self.normalize == 'softmax':
                 # color
                 train[:, i, 0] = 1 - soft(x[:, 8 * i, 0:6])[:, 0]
@@ -372,25 +373,25 @@ class MichalskiPreprocess(nn.Module):
                 # wall
                 train[:, i, 12:14] = soft(x[:, 2 + 8 * i, 8:10])
                 # roof
-                train[:, i, 14:19] = soft(train[:, i, 14:19])
+                train[:, i, 14:19] = soft(torch.cat([x[:, 3 + 8 * i, 0:1], x[:, 3 + 8 * i, 10:14]], dim=-1))
                 # wheel count
                 train[:, i, 19:21] = soft(x[:, 4 + 8 * i, 14:16])
                 # load 1
-                train[:, i, 21:28] = soft(train[:, i, 21:28])
+                train[:, i, 21:28] = soft(torch.cat([x[:, 5 + 8 * i, 0:1], x[:, 5 + 8 * i, 16:22]], dim=-1))
                 # load 2
-                train[:, i, 28:35] = soft(train[:, i, 28:35])
+                train[:, i, 28:35] = soft(torch.cat([x[:, 6 + 8 * i, 0:1], x[:, 6 + 8 * i, 16:22]], dim=-1))
                 # load 3
-                train[:, i, 35:42] = soft(train[:, i, 35:42])
+                train[:, i, 35:42] = soft(torch.cat([x[:, 7 + 8 * i, 0:1], x[:, 7 + 8 * i, 16:22]], dim=-1))
             elif self.normalize == 'norm':
-                train[:, i, 0] = 1 - soft(x[:, 8 * i, 0:6])[:, 0]
+                train[:, i, 0] = softmin(x[:, 8 * i, 0:6])[:, 0]
                 train[:, i, 5:10] = shift_normalize(x[:, 8 * i, 1:6])
                 train[:, i, 10:12] = shift_normalize(x[:, 1 + 8 * i, 6:8])
                 train[:, i, 12:14] = shift_normalize(x[:, 2 + 8 * i, 8:10])
-                train[:, i, 14:19] = shift_normalize(train[:, i, 14:19])
+                train[:, i, 14:19] = shift_normalize(torch.cat([x[:, 3 + 8 * i, 0:1], x[:, 3 + 8 * i, 10:14]], dim=-1))
                 train[:, i, 19:21] = shift_normalize(x[:, 4 + 8 * i, 14:16])
-                train[:, i, 21:28] = shift_normalize(train[:, i, 21:28])
-                train[:, i, 28:35] = shift_normalize(train[:, i, 28:35])
-                train[:, i, 35:42] = shift_normalize(train[:, i, 35:42])
+                train[:, i, 21:28] = shift_normalize(torch.cat([x[:, 5 + 8 * i, 0:1], x[:, 5 + 8 * i, 16:22]], dim=-1))
+                train[:, i, 28:35] = shift_normalize(torch.cat([x[:, 6 + 8 * i, 0:1], x[:, 6 + 8 * i, 16:22]], dim=-1))
+                train[:, i, 35:42] = shift_normalize(torch.cat([x[:, 7 + 8 * i, 0:1], x[:, 7 + 8 * i, 16:22]], dim=-1))
             else:
                 raise ValueError("Unknown normalization method: {}".format(self.normalize))
         return train
