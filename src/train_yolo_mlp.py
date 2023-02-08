@@ -49,7 +49,7 @@ def get_args():
     parser.add_argument(
         "--dataset",
         choices=["twopairs", "threepairs", "red-triangle", "closeby",
-                 "online", "online-pair", "nine-circles", "theoryx", "complex", "numeric"],
+                 "online", "online-pair", "nine-circles", "theoryx", "complex", "numerical"],
         help="Use MNIST dataset",
     )
     parser.add_argument("--dataset-type", default="kandinsky", help="kandinsky, clevr or michalski",

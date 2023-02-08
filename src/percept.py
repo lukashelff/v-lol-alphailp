@@ -241,6 +241,7 @@ class MichalskiPerceptionModule(nn.Module):
 
         # print activations and image to check if the model is working
         # print_pred(activations)
+        # print_proccessed(post)
         # show_torch_im(x)
         # raise Exception('stop')
 
@@ -469,14 +470,14 @@ def print_proccessed(x):
             if x[i, j, 0] < 0.5:
                 print("Car", j, "No car")
             else:
-                car = 'Car' + str(j) + ': '
-                car += 'car_number(' + car_num[torch.max(x[i, j, 1:5], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'color(' + color[torch.max(x[i, j, 5:10], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'length(' + length[torch.max(x[i, j, 10:12], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'wall(' + walls[torch.max(x[i, j, 12:14], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'roof(' + roofs[torch.max(x[i, j, 14:19], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'wheels(' + wheel_count[torch.max(x[i, j, 19:21], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'load1(' + load_obj[torch.max(x[i, j, 21:28], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'load2(' + load_obj[torch.max(x[i, j, 28:35], dim=-1)[1].detach().cpu().numpy()] + '), '
-                car += 'load3(' + load_obj[torch.max(x[i, j, 35:42], dim=-1)[1].detach().cpu().numpy()] + ')'
+                car = f'car(Car{str(j)}), '
+                car += f'car_number(Car{str(j)}, ' + car_num[torch.max(x[i, j, 1:5], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'color(Car{str(j)}, ' + color[torch.max(x[i, j, 5:10], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'length(Car{str(j)}, ' + length[torch.max(x[i, j, 10:12], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'wall(Car{str(j)}, ' + walls[torch.max(x[i, j, 12:14], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'roof(Car{str(j)}, ' + roofs[torch.max(x[i, j, 14:19], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'wheels(Car{str(j)}, ' + wheel_count[torch.max(x[i, j, 19:21], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'load1(Car{str(j)}, ' + load_obj[torch.max(x[i, j, 21:28], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'load2(Car{str(j)}, ' + load_obj[torch.max(x[i, j, 28:35], dim=-1)[1].detach().cpu().numpy()] + '), '
+                car += f'load3(Car{str(j)}, ' + load_obj[torch.max(x[i, j, 35:42], dim=-1)[1].detach().cpu().numpy()] + ')'
                 print(car)

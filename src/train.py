@@ -25,8 +25,8 @@ def get_args():
     parser.add_argument("--dataset", choices=["twopairs", "threepairs", "red-triangle", "closeby",
                                               "online", "online-pair", "nine-circles",
                                               "clevr-hans0", "clevr-hans1", "clevr-hans2",
-                                              "theoryx", "complex", "numeric"], help="Use kandinsky patterns dataset")
-    parser.add_argument("--dataset-type", default="kandinsky", help="kandinsky or clevr")
+                                              "theoryx", "complex", "numerical"], help="Use kandinsky patterns dataset")
+    parser.add_argument("--dataset-type", default="kandinsky", help="kandinsky, clevr, michalski")
     parser.add_argument('--device', default='cpu',
                         help='cuda device, i.e. 0 or cpu')
     parser.add_argument("--no-cuda", action="store_true",
