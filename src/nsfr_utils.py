@@ -141,6 +141,16 @@ def get_data_pos_loader(args):
     else:
         assert 0, 'Invalid dataset type: ' + args.dataset_type
 
+def get_data_neg_loader(args):
+    #if args.dataset_type == 'kandinsky':
+    #    return get_kandinsky_neg_loader(args)
+    #elif args.dataset_type == 'clevr':
+    #    return get_clevr_neg_loader(args)
+    if args.dataset_type == 'michalski':
+        return get_michalski_neg_loader(args)
+    else:
+        assert 0, 'Invalid dataset type: ' + args.dataset_type
+
 def get_clevr_loader(args):
     dataset_train = data_clevr.CLEVRHans(
         args.dataset, 'train'
@@ -238,6 +248,39 @@ def get_michalski_pos_loader(args, shuffle=False):
     )
 
     return train_loader, val_loader, test_loader
+
+def get_michalski_neg_loader(args, shuffle=False):
+    dataset_train = data_michalski.MICHALSKI_NEGATIVE(
+        args.dataset, 'train', small_data=args.small_data
+    )
+    dataset_val = data_michalski.MICHALSKI_NEGATIVE(
+        args.dataset, 'val', small_data=args.small_data
+    )
+    dataset_test = data_michalski.MICHALSKI_NEGATIVE(
+        args.dataset, 'test'
+    )
+
+    train_loader = torch.utils.data.DataLoader(
+        dataset_train,
+        shuffle=True,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+    val_loader = torch.utils.data.DataLoader(
+        dataset_val,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        dataset_test,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+    )
+
+    return train_loader, val_loader, test_loader
+
 
 def get_kandinsky_loader(args, shuffle=False):
     dataset_train = data_kandinsky.KANDINSKY(

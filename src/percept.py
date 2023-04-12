@@ -299,7 +299,7 @@ class MichalskiPreprocess(nn.Module):
         shapes (tensor(int)): The one-hot encodings of the shapes (repeated 3 times).
     """
 
-    def __init__(self, device, img_size=128, normalize='norm'):
+    def __init__(self, device, img_size=128, normalize='softmax'):
         super().__init__()
         self.device = device
         self.img_size = img_size
@@ -343,7 +343,6 @@ class MichalskiPreprocess(nn.Module):
         # shift min to 0
         soft = nn.Softmax(dim=-1)
         softmin = nn.Softmin(dim=-1)
-
         train = torch.zeros(x.size(0), 4, 42).to(self.device)
         for i in range(4):
             # preprocess to object-centric car representation with accuracies for each attribute

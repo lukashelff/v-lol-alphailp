@@ -21,7 +21,7 @@ class ClauseGenerator(object):
         max number of atoms in body of clauses
     """
 
-    def __init__(self, args, NSFR, lang, pos_data_loader, mode_declarations, bk_clauses, device, no_xil=False):
+    def __init__(self, args, NSFR, lang, pos_data_loader, neg_data_loader, mode_declarations, bk_clauses, device, no_xil=False):
         self.args = args
         self.NSFR = NSFR
         self.lang = lang
@@ -31,6 +31,7 @@ class ClauseGenerator(object):
         self.no_xil = no_xil
         self.rgen = RefinementGenerator(lang=lang, mode_declarations=mode_declarations)
         self.pos_loader = pos_data_loader
+        self.neg_loader = neg_data_loader
         self.bce_loss = torch.nn.BCELoss()
 
         #self.labels = torch.cat([
@@ -246,23 +247,30 @@ class ClauseGenerator(object):
             B = imgs.size(0)
             # C * B * G
             V_T_list = NSFR.clause_eval(imgs).detach()
-            C_score = torch.zeros((C, B)).to(self.device)
+            C_pos_score = torch.zeros((C, B)).to(self.device)
             for i, V_T in enumerate(V_T_list):
-                # for each clause
-                # B
-                #print(V_T.shape)
                 predicted = NSFR.predict(v=V_T, predname='kp').detach()
-                #print("clause: ", clauses[i])
-                #NSFR.print_valuation_batch(V_T)
-                #print(predicted)
-                #predicted = self.bce_loss(predicted, target_set)
-                #predicted = torch.abs(predicted - target_set)
-                #print(predicted)
-                C_score[i] = predicted
+                C_pos_score[i] = predicted
             # C
             # sum over positive prob
-            C_score = C_score.sum(dim=1)
-            score += C_score
+            C_pos_score = C_pos_score.sum(dim=1)
+            score += C_pos_score
+
+        for i, sample in tqdm(enumerate(self.neg_loader, start=0)):
+            imgs, target_set = map(lambda x: x.to(self.device), sample)
+            #print(NSFR.clauses)
+            N_data += imgs.size(0)
+            B = imgs.size(0)
+            # C * B * G
+            V_T_list = NSFR.clause_eval(imgs).detach()
+            C_neg_score = torch.zeros((C, B)).to(self.device)
+            for i, V_T in enumerate(V_T_list):
+                predicted = NSFR.predict(v=V_T, predname='kp').detach()
+                C_neg_score[i] = torch.ones_like(predicted, dtype=torch.float32) - predicted
+            # C
+            # sum over positive prob
+            C_neg_score = C_neg_score.sum(dim=1)
+            score += C_neg_score
         #return score
         #score = 1 - score.detach().cpu().numpy() / N_data
         return score

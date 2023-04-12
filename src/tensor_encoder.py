@@ -62,7 +62,7 @@ class TensorEncoder(object):
                     body = clause_.body
                     theta_list = self.generate_subs(body)
                     S_list.append(len(theta_list))
-        return max(S_list)
+        return max(1, max(S_list))
 
     def encode(self):
         """Compute the index tensor for the differentiable inference.
@@ -141,7 +141,7 @@ class TensorEncoder(object):
         """
         # S * L
         I_c_b = torch.zeros(
-            (self.S, self.L), dtype=torch.long).to(self.device)
+            (max(1, self.S), self.L), dtype=torch.long).to(self.device)
 
         # extract all vars in the body atoms
         var_list = []

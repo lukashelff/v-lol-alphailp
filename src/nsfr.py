@@ -105,7 +105,7 @@ class NSFReasoner(nn.Module):
             v = valuation[b].detach().cpu().numpy()
             idxs = np.argsort(-v)
             for i in idxs:
-                if v[i] > 0.1:
+                if v[i] > 0.2:
                     print(i, self.atoms[i], ': ', round(v[i], 3))
 
     def get_valuation_text(self, valuation):

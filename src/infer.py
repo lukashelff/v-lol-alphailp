@@ -181,7 +181,9 @@ class ClauseInferModule(nn.Module):
                 #print("r(R): ", self.r(R).shape)
                 #print("r_bk(R): ", self.r_bk(R).shape)
                 # shape? dim?
-                R = softor([R, self.r(R), self.r_bk(R).unsqueeze(dim=0).expand(self.C, B, self.G)], dim=2, gamma=self.gamma)
+                r1 = self.r(R)
+                r2 = self.r_bk(R).unsqueeze(dim=0).expand(self.C, B, self.G)
+                R = softor([R, r1, r2], dim=2, gamma=self.gamma)
         return R
 
     def r(self, x):

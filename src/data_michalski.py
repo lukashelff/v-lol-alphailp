@@ -53,7 +53,22 @@ def load_images_and_labels_positive(dataset='theoryx', split='train'):
             labels.append(1)
     return image_paths, labels
 
+def load_images_and_labels_negative(dataset='theoryx', split='train'):
+    """Load image paths and labels for clevr-hans dataset.
+    """
+    image_paths = []
+    labels = []
+    folder = 'data/michalski/' + dataset + '/' + split + '/'
+    false_folder = folder + 'false/'
 
+    filenames = sorted(os.listdir(false_folder))[:500]
+    # n = 500  # int(len(filenames)/10)
+    # filenames = random.sample(filenames, n)
+    for filename in filenames:
+        if filename != '.DS_Store':
+            image_paths.append(os.path.join(false_folder, filename))
+            labels.append(1)
+    return image_paths, labels
 def __load_images_and_labels(dataset='theoryx', split='train', base=None):
     """Load image paths and labels for clevr-hans dataset.
     """
@@ -155,6 +170,41 @@ class MICHALSKI_POSITIVE(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
+class MICHALSKI_NEGATIVE(torch.utils.data.Dataset):
+    """three-dimensional Michalski train dataset.
+    """
+
+    def __init__(self, dataset, split, img_size=128, base=None, small_data=False):
+        super().__init__()
+        self.img_size = img_size
+        self.small_data = small_data
+        self.dataset = dataset
+        assert split in {
+            "train",
+            "val",
+            "test",
+        }  # note: test isn't very useful since it doesn't have ground-truth scene information
+        self.split = split
+        self.transform = transforms.Compose(
+            [transforms.ToTensor(),
+             # transforms.Resize((img_size, img_size)),
+             transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                  std=[0.229, 0.224, 0.225]), ]
+        )
+        self.image_paths, self.labels = load_images_and_labels_negative(
+            dataset=dataset, split=split)
+
+    def __getitem__(self, item):
+        path = self.image_paths[item]
+        image = Image.open(path).convert("RGB")
+        # image = transforms.ToTensor()(image)[:3, :, :]
+        image = self.transform(image)
+        # image = (image - 0.5) * 2.0  # Rescale to [-1, 1].
+        label = torch.tensor(self.labels[item], dtype=torch.float32)
+        return image, label
+
+    def __len__(self):
+        return len(self.labels)
 
 class MichalskiTrainDataset(Dataset):
     def __init__(self, class_rule, base_scene, raw_trains, train_vis, train_count=10000, img_size=None,

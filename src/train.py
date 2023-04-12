@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from rtpt import RTPT
 
-from nsfr_utils import denormalize_kandinsky, get_data_loader, get_data_pos_loader, get_prob, get_nsfr_model, update_initial_clauses
+from nsfr_utils import denormalize_kandinsky, get_data_loader, get_data_pos_loader, get_data_neg_loader, get_prob, get_nsfr_model, update_initial_clauses
 from nsfr_utils import save_images_with_captions, to_plot_images_kandinsky, generate_captions
 from logic_utils import get_lang, get_searched_clauses
 from mode_declaration import get_mode_declarations
@@ -209,6 +209,8 @@ def main(n):
     train_loader, val_loader, test_loader = get_data_loader(args)
 
     train_pos_loader, val_pos_loader, test_pos_loader = get_data_pos_loader(args)
+    train_neg_loader, val_neg_loader, test_neg_loader = get_data_neg_loader(args)
+
     #####train_pos_loader, val_pos_loader, test_pos_loader = get_data_loader(args)
 
     # load logical representations
@@ -222,7 +224,7 @@ def main(n):
     # Neuro-Symbolic Forward Reasoner for clause generation
     NSFR_cgen = get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device=device)#torch.device('cpu'))
     mode_declarations = get_mode_declarations(args, lang, args.n_obj)
-    cgen = ClauseGenerator(args, NSFR_cgen, lang, val_pos_loader, mode_declarations, bk_clauses, device=device, no_xil=args.no_xil)#torch.device('cpu'))
+    cgen = ClauseGenerator(args, NSFR_cgen, lang, val_pos_loader, val_neg_loader, mode_declarations, bk_clauses, device=device, no_xil=args.no_xil)#torch.device('cpu'))
     # generate clauses
     if args.pre_searched:
         clauses = get_searched_clauses(lark_path, lang_base_path, args.dataset_type, args.dataset)

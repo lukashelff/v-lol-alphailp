@@ -13,7 +13,7 @@ term : functor "(" args ")"
 	 | const
 	 | variable
 
-const : /[a-z0-9\*]+/
+const : /[a-z0-9\*\_]+/
 
 variable : /[A-Z0-9]+/
 
