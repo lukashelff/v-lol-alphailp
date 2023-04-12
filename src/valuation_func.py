@@ -412,7 +412,7 @@ class MichalskiCarNumValuationFunction(nn.Module):
         Returns:
             A batch of probabilities.
         """
-        z_shape = z[:, 1:5]
+        z_shape = z[:, 1:5] *z [:, 0].unsqueeze(-1)  # (B, 4)
         return (a * z_shape).sum(dim=1)
 
 
