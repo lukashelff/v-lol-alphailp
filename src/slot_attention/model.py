@@ -7,8 +7,6 @@ import torch.nn.functional as F
 import torchvision.models as models
 import numpy as np
 from torchsummary import summary
-
-
 class SlotAttention(nn.Module):
     def __init__(self, num_slots, dim, iters=3, eps=1e-8, hidden_dim=128):
         super().__init__()

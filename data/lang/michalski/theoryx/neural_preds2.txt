@@ -1,9 +1,0 @@
-in:2:car,image
-car_num:2:car,car_num
-color:2:car,color
-length:2:car,length
-wall:2:car,wall
-roof:2:car,roof
-wheel:2:car,wheels
-load:2:car,load
-load_num:2:car,load_num

@@ -1,1 +1,2 @@
 kp:1:image
+equal:2:car
