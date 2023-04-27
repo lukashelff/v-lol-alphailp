@@ -1,6 +1,6 @@
 import torch
 
-from michalski_dataset import MichalskiDataset
+from michalski_trains.michalski_dataset import MichalskiDataset
 
 
 class MichalskiAttributeDataset(MichalskiDataset):

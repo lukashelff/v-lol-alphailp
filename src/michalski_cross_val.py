@@ -3,16 +3,19 @@ import os
 from itertools import product
 
 import numpy as np
+import pandas as pd
+from numpy import arange
 from sklearn.metrics import accuracy_score, recall_score, roc_curve
 
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit
+from torch.utils.data import Subset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from tqdm import tqdm
 from rtpt import RTPT
 
-from michalski_dataset.dataset import get_datasets
+from michalski_trains.dataset import get_datasets
 from nsfr_utils import denormalize_kandinsky, get_data_loader, get_data_pos_loader, get_data_neg_loader, get_prob, \
     get_nsfr_model, update_initial_clauses
 from nsfr_utils import save_images_with_captions, to_plot_images_kandinsky, generate_captions
@@ -126,6 +129,54 @@ def predict(NSFR, loader, args, device, th=None, split='train'):
         return accuracy, rec_score, th
 
 
+def setup_ds(full_ds, tr_idx=None, val_idx=None, test_idx=None, batch_size=10, num_worker=4, shuffle=True):
+    if len(tr_idx) > 0:
+        set_up_txt = f'split ds into training ds with {len(tr_idx)} images and validation ds with {len(val_idx)} images and test ds with {len(test_idx)} images'
+        print(set_up_txt)
+
+    labels = [full_ds[i][1] for i in range(len(full_ds))]
+    pos_tr_idx, neg_tr_idx = [], []
+    pos_val_idx, neg_val_idx = [], []
+    pos_test_idx, neg_test_idx = [], []
+    for i in tr_idx:
+        if labels[i] == 1:
+            pos_tr_idx.append(i)
+        else:
+            neg_tr_idx.append(i)
+    for i in val_idx:
+        if labels[i] == 1:
+            pos_val_idx.append(i)
+        else:
+            neg_val_idx.append(i)
+    for i in test_idx:
+        if labels[i] == 1:
+            pos_test_idx.append(i)
+        else:
+            neg_test_idx.append(i)
+
+    ds = {
+        'train': Subset(full_ds, tr_idx),
+        'val': Subset(full_ds, val_idx),
+        'test': Subset(full_ds, test_idx),
+        'pos_train': Subset(full_ds, pos_tr_idx),
+        'neg_train': Subset(full_ds, neg_tr_idx),
+        'pos_val': Subset(full_ds, pos_val_idx),
+        'neg_val': Subset(full_ds, neg_val_idx),
+        'pos_test': Subset(full_ds, pos_test_idx),
+        'neg_test': Subset(full_ds, neg_test_idx)
+    }
+    dl = {'train': DataLoader(ds['train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
+          'pos_train': DataLoader(ds['pos_train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
+          'neg_train': DataLoader(ds['neg_train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
+          'val': DataLoader(ds['val'], batch_size=batch_size, num_workers=num_worker),
+          'pos_val': DataLoader(ds['pos_val'], batch_size=batch_size, num_workers=num_worker),
+          'neg_val': DataLoader(ds['neg_val'], batch_size=batch_size, num_workers=num_worker),
+          'test': DataLoader(ds['test'], batch_size=batch_size, num_workers=num_worker),
+          'pos_test': DataLoader(ds['pos_test'], batch_size=batch_size, num_workers=num_worker),
+          'neg_test': DataLoader(ds['neg_test'], batch_size=batch_size, num_workers=num_worker)}
+    return ds, dl
+
+
 def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt):
     bce = torch.nn.BCELoss()
     loss_list = []
@@ -180,65 +231,67 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
     return loss
 
 
-def cross_validation(ds_path, train_size=None, label_noise=None, rules=None, visualizations=None, scenes=None,
-                     n_splits=5, model_path=None, save_models=False, replace=False, image_noise=None, ex_name=None,
-                     start_it=0, batch_size=10, raw_trains='MichalskiTrains', min_car_length=2, max_car_length=4,
+def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: list, visualizations: list,
+                     scenes: list,
+                     car_length: list, train_size: list, n_splits=5,
+                     replace=False, start_it=0, batch_size=10, raw_trains='MichalskiTrains',
                      ds_size=12000, resize=False):
-    if train_size is None:
-        train_size = []
-    if label_noise is None:
-        label_noise = []
-    if image_noise is None:
-        image_noise = []
-    if rules is None:
-        rules = []
-    if visualizations is None:
-        visualizations = []
-    if scenes is None:
-        scenes = []
     random_state = 0
     test_size = 2000
-    save_model = save_models
     tr_it, tr_b = 0, 0
     n_batches = sum(train_size) // batch_size
     tr_b_total = n_splits * n_batches * len(label_noise) * len(image_noise) * len(rules) * len(
-        visualizations) * len(scenes)
+        visualizations) * len(scenes) * len(car_length)
     tr_it_total = n_splits * len(train_size) * len(label_noise) * len(image_noise) * len(rules) * len(
-        visualizations) * len(scenes)
-    for l_noise, i_noise, rule, visualization, scene in product(label_noise, image_noise, rules, visualizations,
-                                                                scenes):
-        label_noise, image_noise, class_rule, train_vis, base_scene = l_noise, i_noise, rule, visualization, scene
-        full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=rule,
+        visualizations) * len(scenes) * len(car_length)
+    output_dir = f'runs/alphailp_michalski/stats/'
+    os.makedirs(output_dir, exist_ok=True)
+
+    for label_noise, image_noise, class_rule, train_vis, base_scene, (min_car_length, max_car_length) in \
+            product(label_noise, image_noise, rules, visualizations, scenes, car_length):
+        full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
                                ds_size=ds_size, max_car=max_car_length, min_car=min_car_length,
                                label_noise=label_noise, image_noise=image_noise,
-                               ds_path=ds_path,
-                               resize=resize)
+                               ds_path=ds_path, resize=resize)
         for t_size in train_size:
             full_ds.predictions_im_count = t_size
             cv = StratifiedShuffleSplit(train_size=t_size, test_size=test_size, random_state=random_state,
                                         n_splits=n_splits)
             y = np.concatenate([full_ds.get_direction(item) for item in range(full_ds.__len__())])
-
+            settings = f'{train_vis}_{class_rule}_{t_size}samples_inoise_{image_noise}_lnoise_{label_noise}_len_{min_car_length}-{max_car_length}'
             for fold, (tr_idx, val_idx) in enumerate(cv.split(np.zeros(len(y)), y)):
-                out_path = get_model_path(prefix=True, suffix=f'it_{fold}/', im_count=t_size)
-                if tr_it >= start_it and (not (os.path.isfile(out_path + 'metrics.json') and os.path.isfile(
-                        out_path + 'model.pth')) or replace):
+                o_path = f'{output_dir}{settings}/fold_{fold}.csv'
+                if tr_it >= start_it and (not os.path.isfile(o_path) or replace):
                     print('====' * 10)
                     print(f'training iteration {tr_it + 1}/{tr_it_total} with {t_size // batch_size} '
                           f'training batches, already completed: {tr_b}/{tr_b_total} batches. ')
-                    # setup_model(resume=resume, path=model_path)
-                    setup_ds(tr_idx=tr_idx, val_idx=val_idx)
-                    train(rtpt_extra=(tr_b_total - tr_b) * num_epochs, set_up=False, ex_name=ex_name)
-                    del model
+                    ds, dl = setup_ds(full_ds, tr_idx, val_idx[:test_size // 2], val_idx[test_size // 2:],
+                                      batch_size=batch_size, shuffle=True)
+                    ex_it = f'aILP:Michalski_it({tr_it}/{tr_it_total})_batch({tr_b}/{tr_b_total})'
+                    ex_name = f'aILP:Michalski_{settings}_fold_{fold}'
+                    stats = train(dl, ex_it, ex_name)
+                    frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
+                              stats['theory'],
+                              stats['train_acc'], stats['val_acc'], stats['test_acc'],
+                              stats['train_rec'], stats['val_rec'], stats['test_rec'],
+                              stats['train_th'], stats['val_th'], stats['test_th']
+                              ]]
+                    data = pd.DataFrame(frame, columns=['Methods', 'training samples', 'rule', 'visualization', 'scene',
+                                                        'cv iteration', 'label noise', 'image noise',
+                                                        'theory',
+                                                        'Validation acc', 'Train acc', 'Test acc',
+                                                        'Validation rec', 'Train rec', 'Test rec',
+                                                        'Validation th', 'Train th', 'Test th']
+                                        )
+                    data.to_csv(o_path)
+
                 tr_b += t_size // batch_size
                 tr_it += 1
 
 
-def main(n):
+def train(dl, ex_it, ex_name):
     # torch.autograd.set_detect_anomaly(True)
     args = get_args()
-
-    name = 'aILP:' + args.dataset + '_' + str(n)
 
     print('args ', args)
     if args.no_cuda:
@@ -248,23 +301,17 @@ def main(n):
         device = torch.device('cuda')
     else:
         device = torch.device('cuda:' + args.device)
-    full_dataset = get_datasets()
     print('device: ', device)
     # run_name = 'predict/' + args.dataset
-    writer = SummaryWriter(f"runs/{name}", purge_step=0)
+    writer = SummaryWriter(f"runs/{ex_name}", purge_step=0)
 
     # Create RTPT object
-    rtpt = RTPT(name_initials='LH', experiment_name=name, max_iterations=args.epochs)
+    rtpt = RTPT(name_initials='LH', experiment_name=ex_it, max_iterations=args.epochs)
     # Start the RTPT tracking
     rtpt.start()
-
-    # get torch data loader
-    train_loader, val_loader, test_loader = get_data_loader(args)
-
-    train_pos_loader, val_pos_loader, test_pos_loader = get_data_pos_loader(args)
-    train_neg_loader, val_neg_loader, test_neg_loader = get_data_neg_loader(args)
-
-    #####train_pos_loader, val_pos_loader, test_pos_loader = get_data_loader(args)
+    train_loader, val_loader, test_loader = dl['train'], dl['val'], dl['test']
+    train_pos_loader, val_pos_loader, test_pos_loader = dl['pos_train'], dl['pos_val'], dl['pos_test']
+    train_neg_loader, val_neg_loader, test_neg_loader = dl['neg_train'], dl['neg_val'], dl['neg_test']
 
     # load logical representations
     lark_path = 'src/lark/exp.lark'
@@ -312,8 +359,33 @@ def main(n):
     print("training acc: ", acc, "threashold: ", th, "recall: ", rec)
     print("val acc: ", acc_val, "threashold: ", th_val, "recall: ", rec_val)
     print("test acc: ", acc_test, "threashold: ", th_test, "recall: ", rec_test)
+    stats = {'train_acc': acc, 'val_acc': acc_val, 'test_acc': acc_test,
+             'train_rec': rec, 'val_rec': rec_val, 'test_rec': rec_test,
+             'train_th': th, 'val_th': th_val, 'test_th': th_test,
+             'theory': len(clauses)}
+    return stats
 
 
 if __name__ == "__main__":
-    for i in range(5):
-        main(n=i)
+    # get arguments
+    args = get_args()
+    ds_path_local = '/home/dong/Documents/projects/MichalskiTrainProblem/TrainGenerator/output/image_generator'
+    ds_path_remote = '/home/ml-lhelff/MichalskiTrainProblem/TrainGenerator/output/image_generator'
+    ds_path = [ds_path_local, ds_path_remote][0]
+    scenes = ['base_scene']
+    n_splits = 5
+    batch_size = 10
+    raw_trains = 'MichalskiTrains'
+    ds_size = 12000
+    resize = False
+
+    label_noise = [0, .1, .3][:1]
+    image_noise = [0, .1, .3][:1]
+    rules = ['theoryx', 'numerical', 'complex'][:1]
+    visualizations = ['Trains', 'SimpleObjects'][:1]
+    car_length = [(2, 4), (7, 7)][:1]
+    train_size = [100, 1000, 10000][:1]
+    replace = False
+    start_it = 0
+    cross_validation(ds_path, label_noise, image_noise, rules, visualizations, scenes, car_length, train_size, n_splits,
+                     replace, start_it, batch_size)

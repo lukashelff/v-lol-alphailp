@@ -7,10 +7,10 @@ from datetime import datetime
 
 import torch
 
-from michalski_attribute_dataset import MichalskiAttributeDataset
-from michalski_dataset import MichalskiDataset
-from michalski_mask_dataset import MichalskiMaskDataset
-from michalski_mask_dataset_v2 import MichalskiMaskDatasetV2
+from michalski_trains.michalski_attribute_dataset import MichalskiAttributeDataset
+from michalski_trains.michalski_dataset import MichalskiDataset
+from michalski_trains.michalski_mask_dataset import MichalskiMaskDataset
+from michalski_trains.michalski_mask_dataset_v2 import MichalskiMaskDatasetV2
 
 
 def get_datasets(base_scene, raw_trains, train_vis, class_rule, min_car=2, max_car=4,
