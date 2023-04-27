@@ -374,7 +374,7 @@ if __name__ == "__main__":
     ds_path = [ds_path_local, ds_path_remote][0]
     scenes = ['base_scene']
     n_splits = 5
-    batch_size = 10
+    batch_size = args.batch_size
     raw_trains = 'MichalskiTrains'
     ds_size = 12000
     resize = False
