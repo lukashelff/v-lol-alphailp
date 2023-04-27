@@ -247,6 +247,54 @@ class MichalskiPerceptionModule(nn.Module):
 
         return post
 
+class MichalskiRCNNPerceptionModule(nn.Module):
+    """A perception module using Michalski.
+
+    Attrs:
+        e (int): The maximum number of entities.
+        d (int): The dimension of the object-centric vector.
+        device (device): The device where the model and tensors are loaded.
+        train (bool): The flag if the parameters are trained.
+        preprocess (tensor->tensor): Reshape the yolo output into the unified format of the perceptiom module.
+    """
+
+    # shape output, 5 different shaps + absence of car
+    # length output, 2 different lengths + absence of car
+    # wall output, 2 different walls + absence of car represented as index 0
+    # roof output, 4 different roof shapes + absence of car
+    # wheels output, 2 different wheel counts + absence of car
+    # load number output, max 3 payloads min 0
+    # load shape output, 6 different shape + absence of car
+    # if dim_out == 28:
+    #     self.label_num_classes = [6, 3, 3, 5, 3, 4, 7]
+    # else:
+    # all labels can obtain all classes
+
+    def __init__(self, device, e=4, d=32, train=False):
+        super().__init__()
+        self.e = e  # num of entities
+        self.d = d  # num of dimension
+        self.device = device
+        model = models.resnet18()
+        self.model = MultiLabelNN(backbone=model)
+        weights = torch.load(f='src/weights/michalski/rcnn.pth', map_location=device)
+        self.model.load_state_dict(weights['model_state_dict'])
+        self.model.eval()
+        self.to(device)
+        self.preprocess = MichalskiPreprocess(device)
+
+    def forward(self, x):
+        activations = self.model(x)
+        post = self.preprocess(activations)
+
+        # print activations and image to check if the model is working
+        # print_pred(activations)
+        # print_proccessed(post)
+        # show_torch_im(x)
+        # raise Exception('stop')
+
+        return post
+
 
 class MultiLabelNN(nn.Module):
     """A perception module for Michalski-3D.
@@ -395,6 +443,8 @@ class MichalskiPreprocess(nn.Module):
             else:
                 raise ValueError("Unknown normalization method: {}".format(self.normalize))
         return train
+
+
 
 
 def shift_normalize(x):

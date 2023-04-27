@@ -133,3 +133,4 @@ dmypy.json
 /runs/
 /src/runs/
 /src/weights/michalski/model.pth
+/src/weights/michalski/rcnn.pth
