@@ -1,6 +1,8 @@
 import argparse
 import os
+import warnings
 from itertools import product
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -269,7 +271,8 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                                       batch_size=batch_size, shuffle=True)
                     ex_it = f'aILP:Michalski_it({tr_it}/{tr_it_total})_batch({tr_b}/{tr_b_total})'
                     ex_name = f'aILP:Michalski_{settings}_fold_{fold}'
-                    stats = train(dl, ex_it, ex_name)
+                    remaining_epochs = args.epochs * (tr_it_total - tr_it)
+                    stats = train(dl, ex_it, ex_name, remaining_epochs)
                     frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
                               stats['theory'],
                               stats['train_acc'], stats['val_acc'], stats['test_acc'],
@@ -289,7 +292,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                 tr_it += 1
 
 
-def train(dl, ex_it, ex_name):
+def train(dl, ex_it, ex_name, remaining_epochs):
     # torch.autograd.set_detect_anomaly(True)
     args = get_args()
 
@@ -306,7 +309,7 @@ def train(dl, ex_it, ex_name):
     writer = SummaryWriter(f"runs/{ex_name}", purge_step=0)
 
     # Create RTPT object
-    rtpt = RTPT(name_initials='LH', experiment_name=ex_it, max_iterations=args.epochs)
+    rtpt = RTPT(name_initials='LH', experiment_name=ex_it, max_iterations=remaining_epochs)
     # Start the RTPT tracking
     rtpt.start()
     train_loader, val_loader, test_loader = dl['train'], dl['val'], dl['test']
@@ -367,13 +370,18 @@ def train(dl, ex_it, ex_name):
 
 
 if __name__ == "__main__":
+    '''
+    docker run command:
+    docker run --gpus device=10 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/michalski_cross_val.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
+    '''
+
     # get arguments
     args = get_args()
-    ds_path_local = '/home/dong/Documents/projects/MichalskiTrainProblem/TrainGenerator/output/image_generator'
-    ds_path_remote = '/home/ml-lhelff/MichalskiTrainProblem/TrainGenerator/output/image_generator'
-    ds_path = [ds_path_local, ds_path_remote][0]
+    ds_path_local = f'{Path.home()}/Documents/projects/MichalskiTrainProblem/TrainGenerator/output/image_generator'
+    ds_path_remote = 'data/michalski/all'
+    ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
     scenes = ['base_scene']
-    n_splits = 5
+    n_splits = 1
     batch_size = args.batch_size
     raw_trains = 'MichalskiTrains'
     ds_size = 12000
