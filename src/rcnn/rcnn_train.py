@@ -5,8 +5,8 @@ import torch
 from rtpt.rtpt import RTPT
 from tqdm import tqdm
 
-import src.rcnn.engine as engine
-from src.rcnn.inference import infer_symbolic
+import rcnn.engine as engine
+from rcnn.inference import infer_symbolic
 
 
 def train_rcnn(base_scene, raw_trains, y_val, device, out_path, model_name, model, full_ds, dl,

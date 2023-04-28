@@ -8,8 +8,8 @@ from torchvision.models.detection.rpn import RPNHead, RegionProposalNetwork
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.ops import MultiScaleRoIAlign
 
-from src.rcnn.model.rcnn import GeneralizedMultiHeadRCNN
-from src.rcnn.model.roi_heads import MultiLabelRoIHeads
+from rcnn.model.rcnn import GeneralizedMultiHeadRCNN
+from rcnn.model.roi_heads import MultiLabelRoIHeads
 
 
 class MultiHeadFasterRCNN(GeneralizedMultiHeadRCNN):

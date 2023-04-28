@@ -4,7 +4,7 @@ import time
 
 import torch
 import torchvision.models.detection.mask_rcnn
-import src.rcnn.utils as utils
+import rcnn.utils as utils
 
 
 ##### copied from torch references detection engine.py

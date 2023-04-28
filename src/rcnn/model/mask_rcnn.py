@@ -12,7 +12,7 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNHeads, MaskRCNNPredic
 from torchvision.models.detection.rpn import RPNHead
 from torchvision.ops import MultiScaleRoIAlign
 
-from src.rcnn.model.faster_rcnn import MultiHeadFasterRCNN, _default_anchorgen, MultiLabelFasterRCNN
+from rcnn.model.faster_rcnn import MultiHeadFasterRCNN, _default_anchorgen, MultiLabelFasterRCNN
 
 
 class MultiHeadMaskRCNN(MultiHeadFasterRCNN):

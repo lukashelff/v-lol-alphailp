@@ -11,8 +11,8 @@ from torch import optim
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler, DataLoader
 
-import src.rcnn.engine as engine
-from src.rcnn.inference import infer_symbolic
+import rcnn.engine as engine
+from rcnn.inference import infer_symbolic
 
 
 def rcnn_distributed_training(rank, out_path, model, ds, optimizer, scheduler, world_size, batch_size, num_epochs=25,

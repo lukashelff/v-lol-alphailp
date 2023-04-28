@@ -10,8 +10,8 @@ from tqdm import tqdm
 
 from michalski_trains.dataset import michalski_labels, blender_categories
 from michalski_trains.m_train import BlenderCar, MichalskiTrain
-from src.rcnn.plot_prediction import plot_mask
-from src.rcnn.template_matcher import prediction_to_symbolic_v2
+from rcnn.plot_prediction import plot_mask
+from rcnn.template_matcher import prediction_to_symbolic_v2
 
 
 def infer_symbolic(model, dl, device, segmentation_similarity_threshold=.8, samples=None, debug=False):
