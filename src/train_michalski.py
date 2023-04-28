@@ -271,6 +271,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     ds, dl = setup_ds(full_ds, tr_idx, val_idx[:test_size // 2], val_idx[test_size // 2:],
                                       batch_size=batch_size, shuffle=True)
                     ex_it = f'aILP:Michalski_it({tr_it}/{tr_it_total})_batch({tr_b}/{tr_b_total})'
+                    ex_it = f'aILP:M'
                     ex_name = f'aILP:Michalski_{settings}_fold_{fold}'
                     remaining_epochs = args.epochs * (tr_it_total - tr_it)
                     stats = train(dl, ex_it, ex_name, remaining_epochs)
@@ -373,7 +374,7 @@ def train(dl, ex_it, ex_name, remaining_epochs):
 if __name__ == "__main__":
     '''
     docker run command:
-    docker run --gpus device=10 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
+    docker run --gpus device=3 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
     '''
 
     # get arguments
