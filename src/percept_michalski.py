@@ -36,7 +36,7 @@ class MichalskiPerceptionModuleResNet(nn.Module):
         self.device = device
         model = models.resnet18()
         self.model = MultiLabelNN(backbone=model)
-        weights = torch.load(f='src/weights/michalski/model.pth', map_location=device)
+        weights = torch.load(f='src/weights/michalski/resnet/model.pth', map_location=device)
         self.model.load_state_dict(weights['model_state_dict'])
         self.model.eval()
         self.to(device)

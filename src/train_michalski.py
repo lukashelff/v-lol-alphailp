@@ -192,7 +192,8 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
             V_T = NSFR(imgs)
             ##NSFR.print_valuation_batch(V_T)
             predicted = get_prob(V_T, NSFR, args)
-            loss = bce(predicted, target_set)
+            # raise Exception(f'predicted with size: {predicted.size()}, target with size: {target_set.size()}')
+            loss = bce(predicted.unsqueeze(1), target_set)
             loss_i += loss.item()
             loss.backward()
             optimizer.step()
@@ -380,8 +381,10 @@ if __name__ == "__main__":
     ds_path_local = f'{Path.home()}/Documents/projects/MichalskiTrainProblem/TrainGenerator/output/image_generator'
     ds_path_mac = f'{Path.home()}/Documents/projects/Michalski/Neuro-Symbolic-Relational-Learner/TrainGenerator/output/image_generator'
     ds_path_remote = 'data/michalski/all'
-    # ds_path = ds_path_mac
-    ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
+    if args.no_cuda:
+        ds_path = ds_path_mac
+    else:
+        ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
     scenes = ['base_scene']
     n_splits = 1
     batch_size = args.batch_size
