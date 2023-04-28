@@ -6,10 +6,11 @@ import torch
 import data_clevr
 import data_kandinsky
 import data_michalski
-from percept import SlotAttentionPerceptionModule, YOLOPerceptionModule, MichalskiPerceptionModule
+from percept import SlotAttentionPerceptionModule, YOLOPerceptionModule
 from facts_converter import FactsConverter
 from nsfr import NSFReasoner
 from logic_utils import build_infer_module, build_clause_infer_module
+from percept_michalski import MichalskiPerceptionModuleRCNN, MichalskiPerceptionModuleResNet
 from valuation import SlotAttentionValuationModule, YOLOValuationModule, MichalskiValuationModule
 
 attrs = ['color', 'shape', 'material', 'size']
@@ -417,8 +418,10 @@ def get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=Fal
         PM = SlotAttentionPerceptionModule(e=10, d=19, device=device)
         VM = SlotAttentionValuationModule(lang=lang,  device=device)
     elif args.dataset_type == 'michalski':
-        PM = MichalskiPerceptionModule(e=4, d=32, device=device)
+        PM = MichalskiPerceptionModuleRCNN(e=4, d=32, device=device)
+        # PM = MichalskiPerceptionModuleResNet(e=4, d=32, device=device)
         VM = MichalskiValuationModule(lang=lang,  device=device)
+
     else:
         assert False, "Invalid dataset type: " + str(args.dataset_type)
     FC = FactsConverter(lang=lang, perception_module=PM,

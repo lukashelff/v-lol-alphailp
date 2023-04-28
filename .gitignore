@@ -132,5 +132,4 @@ dmypy.json
 .idea
 /runs/
 /src/runs/
-/src/weights/michalski/model.pth
-/src/weights/michalski/rcnn.pth
+/src/weights/michalski/

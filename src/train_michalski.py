@@ -378,8 +378,10 @@ if __name__ == "__main__":
     # get arguments
     args = get_args()
     ds_path_local = f'{Path.home()}/Documents/projects/MichalskiTrainProblem/TrainGenerator/output/image_generator'
+    ds_path_mac = f'{Path.home()}/Documents/projects/Michalski/Neuro-Symbolic-Relational-Learner/TrainGenerator/output/image_generator'
     ds_path_remote = 'data/michalski/all'
-    ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
+    # ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
+    ds_path = ds_path_mac
     scenes = ['base_scene']
     n_splits = 1
     batch_size = args.batch_size

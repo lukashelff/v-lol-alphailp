@@ -8,13 +8,21 @@ def rcnn_to_car_number(label_val):
     return label_val - len(blender_categories()) + 1
 
 
-def prediction_to_symbolic_v2(prediction, label_names, threshold=.8):
+def prediction_to_symbolic_v2(prediction, threshold=.8):
     '''
     Convert prediction to symbolic representation
     :param prediction: prediction from model
     :param threshold: threshold for similarity between two segments
-    :return: symbolic representation of the scene
+    :return: symbolic representation of the scene, tensor of size (n*8) where n is the number of cars in the train
     '''
+    color = ['yellow', 'green', 'grey', 'red', 'blue']
+    length = ['short', 'long']
+    walls = ["braced_wall", 'solid_wall']
+    roofs = ["roof_foundation", 'solid_roof', 'braced_roof', 'peaked_roof']
+    wheel_count = ['2_wheels', '3_wheels']
+    load_obj = ["box", "golden_vase", 'barrel', 'diamond', 'metal_pot', 'oval_vase']
+    label_names =  ['none'] + color + length + walls + roofs + wheel_count + load_obj + ['car'] + ['locomotive']
+
     debug_info = ""
 
     labels = prediction["labels"]
