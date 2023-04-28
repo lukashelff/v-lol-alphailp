@@ -106,8 +106,8 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
         for i, activation in enumerate(activations):
             concept, issues = prediction_to_symbolic_v2(activation)
             # concept to one hot
-            one_hot = torch.nn.functional.one_hot(concept.to(torch.int64), num_classes=22).unsqueeze(dim=0)
-            concept_padded[i, :, :one_hot.shape[2]] = one_hot
+            one_hot = torch.nn.functional.one_hot(concept.to(torch.int64), num_classes=22)
+            concept_padded[i, :one_hot.shape[0], :] = one_hot
 
         post = self.preprocess(concept_padded)
 
