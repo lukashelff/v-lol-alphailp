@@ -372,7 +372,7 @@ def train(dl, ex_it, ex_name, remaining_epochs):
 if __name__ == "__main__":
     '''
     docker run command:
-    docker run --gpus device=10 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/michalski_cross_val.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
+    docker run --gpus device=10 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
     '''
 
     # get arguments
@@ -380,8 +380,8 @@ if __name__ == "__main__":
     ds_path_local = f'{Path.home()}/Documents/projects/MichalskiTrainProblem/TrainGenerator/output/image_generator'
     ds_path_mac = f'{Path.home()}/Documents/projects/Michalski/Neuro-Symbolic-Relational-Learner/TrainGenerator/output/image_generator'
     ds_path_remote = 'data/michalski/all'
-    # ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
-    ds_path = ds_path_mac
+    # ds_path = ds_path_mac
+    ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
     scenes = ['base_scene']
     n_splits = 1
     batch_size = args.batch_size
