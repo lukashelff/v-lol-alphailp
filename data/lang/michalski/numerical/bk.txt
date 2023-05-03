@@ -1,6 +1,6 @@
-smaller(1,2).
-smaller(1,3).
-smaller(1,4).
-smaller(2,3).
-smaller(2,4).
-smaller(3,4).
+not_none(blue_box).
+not_none(golden_vase).
+not_none(barrel).
+not_none(diamond).
+not_none(metal_box).
+not_none(oval_vase).

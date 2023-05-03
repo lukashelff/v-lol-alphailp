@@ -1,9 +1,8 @@
 car:car1,car2,car3,car4
-car_num:1,2,3,4
+int:1,2,3,4
 color:yellow,green,grey,red,blue
 length:short,long
 wall:full,braced
 roof:none,foundation,solid_roof,braced_roof,peaked_roof
-wheel:2,3
 load:none,blue_box,golden_vase,barrel,diamond,metal_box,oval_vase
 image:img

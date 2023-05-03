@@ -153,12 +153,13 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
             pos_val_idx.append(i)
         else:
             neg_val_idx.append(i)
-    labels_test = [test_ds[i][1] for i in range(len(test_ds))]
-    for i in labels_test:
-        if labels[i] == 1:
-            pos_test_idx.append(i)
-        else:
-            neg_test_idx.append(i)
+    if test_ds is not None:
+        labels_test = [test_ds[i][1] for i in range(len(test_ds))]
+        for i in labels_test:
+            if labels[i] == 1:
+                pos_test_idx.append(i)
+            else:
+                neg_test_idx.append(i)
 
     ds = {
         'train': Subset(full_ds, tr_idx),
@@ -265,13 +266,16 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                                min_car=2, label_noise=label_noise, image_noise=image_noise, ds_path=ds_path,
                                resize=resize)
         try:
-            test_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
-                                   ds_size=ds_size, max_car=7, min_car=7,
-                                   label_noise=label_noise, image_noise=image_noise,
-                                   ds_path=ds_path, resize=resize)
-            print(f'Using test dataset with train length of 7 for test evaluation')
+            if (7, 7) in car_length:
+                test_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
+                                       ds_size=2000, max_car=7, min_car=7,
+                                       label_noise=label_noise, image_noise=image_noise,
+                                       ds_path=ds_path, resize=resize)
+                print(f'Using test dataset with train length of 7 for test evaluation')
+            else:
+                raise Exception(f'No test dataset with train length of 7 for test evaluation found skipping test evaluation')
         except:
-            print(f'No test dataset with train length of 7 for test evaluation found skipping test evaluation')
+            print(f'No test dataset found or selected. Skipping test evaluation with train length of 7 ')
             test_ds = None
         for t_size in train_size:
             full_ds.predictions_im_count = t_size
@@ -357,6 +361,8 @@ def train(dl, ex_it, ex_name, remaining_epochs):
     print("====== ", len(clauses), " clauses are generated!! ======")
     # update
     NSFR = get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=True)
+    # inferred_clauses = NSFR.clauses
+
 
     params = NSFR.get_params()
     optimizer = torch.optim.RMSprop(params, lr=args.lr)
@@ -380,14 +386,15 @@ def train(dl, ex_it, ex_name, remaining_epochs):
         # test split
         acc_test, rec_test, th_test = predict(
             NSFR, test_loader, args, device, th=th_val, split='test')
-
+    NSFR.print_program()
+    prog = NSFR.get_program()
     print("training acc: ", acc, "threashold: ", th, "recall: ", rec)
     print("val acc: ", acc_val, "threashold: ", th_val, "recall: ", rec_val)
     print("test acc: ", acc_test, "threashold: ", th_test, "recall: ", rec_test)
     stats = {'train_acc': acc, 'val_acc': acc_val, 'test_acc': acc_test,
              'train_rec': rec, 'val_rec': rec_val, 'test_rec': rec_test,
              'train_th': th, 'val_th': th_val, 'test_th': th_test,
-             'theory': len(clauses)}
+             'theory': prog}
     return stats
 
 

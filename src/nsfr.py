@@ -16,7 +16,8 @@ class NSFReasoner(nn.Module):
         atoms (list(atom)): The set of ground atoms (facts).
     """
 
-    def __init__(self, perception_module, facts_converter, infer_module, clause_infer_module, atoms, bk, clauses, train=False):
+    def __init__(self, perception_module, facts_converter, infer_module, clause_infer_module, atoms, bk, clauses,
+                 train=False):
         super().__init__()
         self.pm = perception_module
         self.fc = facts_converter
@@ -77,7 +78,7 @@ class NSFReasoner(nn.Module):
                 pred_str=predname, atoms=self.atoms)
             target_indices.append(target_index)
         prob = torch.cat([v[:, i].unsqueeze(-1)
-                         for i in target_indices], dim=1)
+                          for i in target_indices], dim=1)
         B = v.size(0)
         N = len(prednames)
         assert prob.size(0) == B and prob.size(
@@ -95,11 +96,22 @@ class NSFReasoner(nn.Module):
 
         for i, W_ in enumerate(Ws_softmaxed):
             max_i = np.argmax(W_.detach().cpu().numpy())
-            print('C_'+str(i)+': ',
+            print('C_' + str(i) + ': ',
                   C[max_i], np.round(np.array(W_[max_i].detach().cpu().item()), 2))
 
+    def get_program(self):
+        """Print asummary of logic programs using continuous weights.
+        """
+        C = self.clauses
+        Ws_softmaxed = torch.softmax(self.im.W, 1)
+        program = []
+        for i, W_ in enumerate(Ws_softmaxed):
+            max_i = np.argmax(W_.detach().cpu().numpy())
+            program.append('C_' + str(i) + ': ' + C[max_i] + np.round(np.array(W_[max_i].detach().cpu().item()), 2))
+        return program
+
     def print_valuation_batch(self, valuation, n=40):
-        #self.print_program()
+        # self.print_program()
         for b in range(valuation.size(0)):
             print('===== BATCH: ', b, '=====')
             v = valuation[b].detach().cpu().numpy()
