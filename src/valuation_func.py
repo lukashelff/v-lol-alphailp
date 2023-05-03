@@ -414,7 +414,7 @@ class MichalskiCarNumValuationFunction(nn.Module):
         """
         z_shape = z[:, 1:5] * z[:, 0].unsqueeze(-1)  # (B, 4)
         z_shape_padded = torch.cat(
-            [torch.zeros(z_shape.shape[0], 1), z_shape, torch.zeros(z_shape.shape[0], 3).to(z.device)], dim=1)  # (B, 5)
+            [torch.zeros(z_shape.shape[0], 1).to(z.device), z_shape, torch.zeros(z_shape.shape[0], 3).to(z.device)], dim=1)  # (B, 5)
         return (a * z_shape_padded).sum(dim=1)
 
 
