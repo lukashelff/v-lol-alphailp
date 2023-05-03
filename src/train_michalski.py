@@ -162,14 +162,14 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
 
     ds = {
         'train': Subset(full_ds, tr_idx),
-        'val': Subset(full_ds, val_idx),
-        'test': test_ds if test_ds is not None else Subset(full_ds, val_idx),
         'pos_train': Subset(test_ds, pos_tr_idx),
         'neg_train': Subset(test_ds, neg_tr_idx),
+        'val': Subset(full_ds, val_idx),
         'pos_val': Subset(full_ds, pos_val_idx),
         'neg_val': Subset(full_ds, neg_val_idx),
-        'pos_test': Subset(full_ds, pos_val_idx) if test_ds is None else Subset(test_ds, pos_test_idx),
-        'neg_test': Subset(full_ds, neg_val_idx) if test_ds is None else Subset(test_ds, neg_test_idx)
+        'test': test_ds,
+        'pos_test': Subset(test_ds, pos_test_idx) if test_ds is not None else test_ds,
+        'neg_test': Subset(test_ds, neg_test_idx) if test_ds is not None else test_ds
     }
     dl = {'train': DataLoader(ds['train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
           'pos_train': DataLoader(ds['pos_train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
@@ -177,9 +177,12 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
           'val': DataLoader(ds['val'], batch_size=batch_size, num_workers=num_worker),
           'pos_val': DataLoader(ds['pos_val'], batch_size=batch_size, num_workers=num_worker),
           'neg_val': DataLoader(ds['neg_val'], batch_size=batch_size, num_workers=num_worker),
-          'test': DataLoader(ds['test'], batch_size=batch_size, num_workers=num_worker),
-          'pos_test': DataLoader(ds['pos_test'], batch_size=batch_size, num_workers=num_worker),
-          'neg_test': DataLoader(ds['neg_test'], batch_size=batch_size, num_workers=num_worker)}
+          'test': DataLoader(ds['test'], batch_size=batch_size,
+                             num_workers=num_worker) if test_ds is not None else None,
+          'pos_test': DataLoader(ds['pos_test'], batch_size=batch_size,
+                                 num_workers=num_worker) if test_ds is not None else None,
+          'neg_test': DataLoader(ds['neg_test'], batch_size=batch_size,
+                                 num_workers=num_worker) if test_ds is not None else None}
     return ds, dl
 
 
@@ -257,24 +260,25 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
     output_dir = f'runs/alphailp_michalski/stats/'
     os.makedirs(output_dir, exist_ok=True)
 
-    for label_noise, image_noise, class_rule, train_vis, base_scene, (min_car_length, max_car_length) in \
-            product(label_noise, image_noise, rules, visualizations, scenes, car_length):
-        start_time = datetime.now()
+    for label_noise, image_noise, class_rule, train_vis, base_scene in product(label_noise, image_noise, rules, visualizations, scenes):
         full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule, ds_size=ds_size, max_car=4,
                                min_car=2, label_noise=label_noise, image_noise=image_noise, ds_path=ds_path,
                                resize=resize)
-        test_ds = None
-        if min_car_length == 7:
+        try:
             test_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
-                                   ds_size=ds_size, max_car=max_car_length, min_car=min_car_length,
+                                   ds_size=ds_size, max_car=7, min_car=7,
                                    label_noise=label_noise, image_noise=image_noise,
                                    ds_path=ds_path, resize=resize)
+            print(f'Using test dataset with train length of 7 for test evaluation')
+        except:
+            print(f'No test dataset with train length of 7 for test evaluation found skipping test evaluation')
+            test_ds = None
         for t_size in train_size:
             full_ds.predictions_im_count = t_size
             cv = StratifiedShuffleSplit(train_size=t_size, test_size=test_size, random_state=random_state,
                                         n_splits=n_splits)
             y = np.concatenate([full_ds.get_direction(item) for item in range(full_ds.__len__())])
-            settings = f'{train_vis}_{class_rule}_{t_size}samples_inoise_{image_noise}_lnoise_{label_noise}_len_{min_car_length}-{max_car_length}'
+            settings = f'{train_vis}_{class_rule}_{t_size}samples_inoise_{image_noise}_lnoise_{label_noise}'
             for fold, (tr_idx, val_idx) in enumerate(cv.split(np.zeros(len(y)), y)):
                 o_path = f'{output_dir}{settings}/fold_{fold}.csv'
                 if tr_it >= start_it and (not os.path.isfile(o_path) or replace):
@@ -297,9 +301,9 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     data = pd.DataFrame(frame, columns=['Methods', 'training samples', 'rule', 'visualization', 'scene',
                                                         'cv iteration', 'label noise', 'image noise',
                                                         'theory',
-                                                        'Validation acc', 'Train acc', 'Test acc',
-                                                        'Validation rec', 'Train rec', 'Test rec',
-                                                        'Validation th', 'Train th', 'Test th']
+                                                        'Validation acc', 'Train acc', 'Generalization acc',
+                                                        'Validation rec', 'Train rec', 'Generalization rec',
+                                                        'Validation th', 'Train th', 'Generalization th']
                                         )
                     os.makedirs(os.path.dirname(o_path), exist_ok=True)
                     data.to_csv(o_path)
