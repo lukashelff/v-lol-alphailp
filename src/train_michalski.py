@@ -250,6 +250,31 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                      car_length: list, train_size: list, n_splits=5,
                      replace=False, start_it=0, batch_size=10, raw_trains='MichalskiTrains',
                      ds_size=12000, resize=False):
+    '''
+    Run cross validation on the given dataset with the given parameters. The cross validation is done on the train set
+
+    Args:
+        ds_path: str, path to the dataset
+        label_noise: list, list of label noise to add to the dataset
+        image_noise: list, list of image noise to add to the dataset
+        rules: list, list of rules to add to the dataset
+        visualizations: list, list of visualizations to add to the dataset
+        rules:
+        visualizations:
+        scenes:
+        car_length:
+        train_size:
+        n_splits:
+        replace:
+        start_it:
+        batch_size:
+        raw_trains:
+        ds_size:
+        resize:
+
+    Returns:
+
+    '''
     random_state = 0
     test_size = 2000
     tr_it, tr_b = 0, 0
@@ -401,7 +426,7 @@ def train(dl, ex_it, ex_name, remaining_epochs):
 if __name__ == "__main__":
     '''
     docker run command:
-    docker run --gpus device=3 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
+    docker run --gpus device=12 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
     '''
 
     # get arguments
@@ -422,7 +447,7 @@ if __name__ == "__main__":
 
     label_noise = [0, .1, .3][:1]
     image_noise = [0, .1, .3][:1]
-    rules = ['theoryx', 'numerical', 'complex'][:1]
+    rules = ['theoryx', 'numerical', 'complex'][2:]
     visualizations = ['Trains', 'SimpleObjects'][:1]
     car_length = [(2, 4), (7, 7)][:1]
     train_size = [100, 1000, 10000][:1]

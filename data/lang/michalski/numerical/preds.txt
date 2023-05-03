@@ -1,3 +1,7 @@
 kp:1:image
 load_num:2:car,int
 not_none:1:load
+closed:1:car
+smaller:2:int,int
+behind:2:car,car
+different_color:2:color,color

@@ -1,0 +1,6 @@
+not_none(blue_box).
+not_none(golden_vase).
+not_none(barrel).
+not_none(diamond).
+not_none(metal_box).
+not_none(oval_vase).

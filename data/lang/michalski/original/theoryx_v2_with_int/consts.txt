@@ -1,5 +1,5 @@
 car:car1,car2,car3,car4
-int:0,1,2,3,4,5,6,7
+int:1,2,3,4
 color:yellow,green,grey,red,blue
 length:short,long
 wall:full,braced
