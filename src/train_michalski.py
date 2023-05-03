@@ -1,6 +1,7 @@
 import argparse
 import os
 import warnings
+from datetime import datetime
 from itertools import product
 from pathlib import Path
 
@@ -131,9 +132,11 @@ def predict(NSFR, loader, args, device, th=None, split='train'):
         return accuracy, rec_score, th
 
 
-def setup_ds(full_ds, tr_idx=None, val_idx=None, test_idx=None, batch_size=10, num_worker=4, shuffle=True):
+def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, num_worker=4, shuffle=True):
     if len(tr_idx) > 0:
-        set_up_txt = f'split ds into training ds with {len(tr_idx)} images and validation ds with {len(val_idx)} images and test ds with {len(test_idx)} images'
+        set_up_txt = f'split ds into training ds with {len(tr_idx)} images and validation ds with {len(val_idx)} images'
+        if test_ds is not None:
+            set_up_txt += f' and test ds with {test_ds.__len__()} images and train length of {test_ds.min_car}'
         print(set_up_txt)
 
     labels = [full_ds[i][1] for i in range(len(full_ds))]
@@ -150,7 +153,8 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_idx=None, batch_size=10, n
             pos_val_idx.append(i)
         else:
             neg_val_idx.append(i)
-    for i in test_idx:
+    labels_test = [test_ds[i][1] for i in range(len(test_ds))]
+    for i in labels_test:
         if labels[i] == 1:
             pos_test_idx.append(i)
         else:
@@ -159,13 +163,13 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_idx=None, batch_size=10, n
     ds = {
         'train': Subset(full_ds, tr_idx),
         'val': Subset(full_ds, val_idx),
-        'test': Subset(full_ds, test_idx),
-        'pos_train': Subset(full_ds, pos_tr_idx),
-        'neg_train': Subset(full_ds, neg_tr_idx),
+        'test': test_ds if test_ds is not None else Subset(full_ds, val_idx),
+        'pos_train': Subset(test_ds, pos_tr_idx),
+        'neg_train': Subset(test_ds, neg_tr_idx),
         'pos_val': Subset(full_ds, pos_val_idx),
         'neg_val': Subset(full_ds, neg_val_idx),
-        'pos_test': Subset(full_ds, pos_test_idx),
-        'neg_test': Subset(full_ds, neg_test_idx)
+        'pos_test': Subset(full_ds, pos_val_idx) if test_ds is None else Subset(test_ds, pos_test_idx),
+        'neg_test': Subset(full_ds, neg_val_idx) if test_ds is None else Subset(test_ds, neg_test_idx)
     }
     dl = {'train': DataLoader(ds['train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
           'pos_train': DataLoader(ds['pos_train'], batch_size=batch_size, num_workers=num_worker, shuffle=shuffle),
@@ -228,10 +232,11 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
             writer.add_scalar("metric/train_acc", acc, global_step=epoch)
             print("acc_train: ", acc)
 
-            print("Predicting on test data set...")
-            acc, rec, th = predict(NSFR, test_loader, args, device, th=th_val, split='train')
-            writer.add_scalar("metric/test_acc", acc, global_step=epoch)
-            print("acc_test: ", acc)
+            if test_loader is not None:
+                print("Predicting on test data set...")
+                acc, rec, th = predict(NSFR, test_loader, args, device, th=th_val, split='train')
+                writer.add_scalar("metric/test_acc", acc, global_step=epoch)
+                print("acc_test: ", acc)
 
     return loss
 
@@ -254,10 +259,16 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
 
     for label_noise, image_noise, class_rule, train_vis, base_scene, (min_car_length, max_car_length) in \
             product(label_noise, image_noise, rules, visualizations, scenes, car_length):
-        full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
-                               ds_size=ds_size, max_car=max_car_length, min_car=min_car_length,
-                               label_noise=label_noise, image_noise=image_noise,
-                               ds_path=ds_path, resize=resize)
+        start_time = datetime.now()
+        full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule, ds_size=ds_size, max_car=4,
+                               min_car=2, label_noise=label_noise, image_noise=image_noise, ds_path=ds_path,
+                               resize=resize)
+        test_ds = None
+        if min_car_length == 7:
+            test_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
+                                   ds_size=ds_size, max_car=max_car_length, min_car=min_car_length,
+                                   label_noise=label_noise, image_noise=image_noise,
+                                   ds_path=ds_path, resize=resize)
         for t_size in train_size:
             full_ds.predictions_im_count = t_size
             cv = StratifiedShuffleSplit(train_size=t_size, test_size=test_size, random_state=random_state,
@@ -270,7 +281,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     print('====' * 10)
                     print(f'training iteration {tr_it + 1}/{tr_it_total} with {t_size // batch_size} '
                           f'training batches, already completed: {tr_b}/{tr_b_total} batches. ')
-                    ds, dl = setup_ds(full_ds, tr_idx, val_idx[:test_size // 2], val_idx[test_size // 2:],
+                    ds, dl = setup_ds(full_ds, tr_idx, val_idx, test_ds,
                                       batch_size=batch_size, shuffle=True)
                     ex_it = f'aILP:Michalski_it({tr_it}/{tr_it_total})_batch({tr_b}/{tr_b_total})'
                     ex_it = f'aILP:M'
@@ -290,6 +301,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                                                         'Validation rec', 'Train rec', 'Test rec',
                                                         'Validation th', 'Train th', 'Test th']
                                         )
+                    os.makedirs(os.path.dirname(o_path), exist_ok=True)
                     data.to_csv(o_path)
 
                 tr_b += t_size // batch_size
@@ -358,10 +370,12 @@ def train(dl, ex_it, ex_name, remaining_epochs):
     acc, rec, th = predict(
         NSFR, train_loader, args, device, th=th_val, split='train')
 
-    print("Predicting on test data set...")
-    # test split
-    acc_test, rec_test, th_test = predict(
-        NSFR, test_loader, args, device, th=th_val, split='test')
+    acc_test, rec_test, th_test = None, None, None
+    if test_loader is not None:
+        print("Predicting on test data set...")
+        # test split
+        acc_test, rec_test, th_test = predict(
+            NSFR, test_loader, args, device, th=th_val, split='test')
 
     print("training acc: ", acc, "threashold: ", th, "recall: ", rec)
     print("val acc: ", acc_val, "threashold: ", th_val, "recall: ", rec_val)
@@ -401,7 +415,7 @@ if __name__ == "__main__":
     visualizations = ['Trains', 'SimpleObjects'][:1]
     car_length = [(2, 4), (7, 7)][:1]
     train_size = [100, 1000, 10000][:1]
-    replace = False
+    replace = True
     start_it = 0
     cross_validation(ds_path, label_noise, image_noise, rules, visualizations, scenes, car_length, train_size, n_splits,
                      replace, start_it, batch_size)
