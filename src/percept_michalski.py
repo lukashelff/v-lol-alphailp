@@ -102,11 +102,18 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
     def forward(self, x):
         activations = self.model(x)
         activations = [{k: v.to(self.device) for k, v in t.items()} for t in activations]
-        concept_padded = torch.zeros((len(activations), 32, 22))
+        # concept_padded = torch.zeros((len(activations), 32, 22))
+        concept_padded = torch.zeros((len(activations), 16, 22))
         for i, activation in enumerate(activations):
             concept, issues = prediction_to_symbolic_v2(activation)
             # concept to one hot
             one_hot = torch.nn.functional.one_hot(concept.to(torch.int64), num_classes=22)
+            # if concept is larger than current padding, expand padding to the size of the concept
+            if one_hot.shape[0] > concept_padded.shape[1]:
+                concept_padded = torch.cat(
+                    (concept_padded, torch.zeros((len(activations), one_hot.shape[0] - concept_padded.shape[1], 22))),
+                    dim=1)
+
             concept_padded[i, :one_hot.shape[0], :] = one_hot
 
         post = self.preprocess(concept_padded)

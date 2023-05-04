@@ -354,7 +354,12 @@ class MichalskiValuationModule(nn.Module):
         """
         term_index = self.lang.term_index(term)
         if term.dtype.name == 'car':
-            return zs[:, term_index]
+            try:
+                return zs[:, term_index]
+            except:
+                return torch.zeros(zs.size(0), zs.size(2)).to(self.device)
+
+            # return zs[:, term_index]
         elif term.dtype.name == 'image':
             return None
         else:

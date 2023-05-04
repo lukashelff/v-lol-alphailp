@@ -44,7 +44,7 @@ class NSFReasoner(nn.Module):
         zs = self.pm(x)
         # convert to the valuation tensor
         V_0 = self.fc(zs, self.atoms, self.bk)
-        self.print_valuation_batch(V_0)
+        # self.print_valuation_batch(V_0)
         # perform T-step forward-chaining reasoning
         V_T = self.im(V_0)
         return V_T
@@ -107,7 +107,7 @@ class NSFReasoner(nn.Module):
         program = []
         for i, W_ in enumerate(Ws_softmaxed):
             max_i = np.argmax(W_.detach().cpu().numpy())
-            program.append('C_' + str(i) + ': ' + C[max_i] + np.round(np.array(W_[max_i].detach().cpu().item()), 2))
+            program.append([C[max_i], np.round(np.array(W_[max_i].detach().cpu().item()), 2)])
         return program
 
     def print_valuation_batch(self, valuation, n=40):

@@ -317,10 +317,11 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     ds, dl = setup_ds(full_ds, tr_idx, val_idx, test_ds,
                                       batch_size=batch_size, shuffle=True)
                     ex_it = f'aILP:Michalski_it({tr_it}/{tr_it_total})_batch({tr_b}/{tr_b_total})'
-                    ex_it = f'aILP:M'
-                    ex_name = f'aILP:Michalski_{settings}_fold_{fold}'
+                    ex_it = f'aILP:M_{class_rule[0]}_it({tr_it}/{tr_it_total})'
+                    ex_it = f'aILP:M_{class_rule[0]}'
+                    setting = f'aILP:Michalski_{settings}_fold_{fold}'
                     remaining_epochs = args.epochs * (tr_it_total - tr_it)
-                    stats = train(dl, ex_it, ex_name, remaining_epochs)
+                    stats = train(dl, ex_it, setting, remaining_epochs)
                     frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
                               stats['theory'],
                               stats['train_acc'], stats['val_acc'], stats['test_acc'],
@@ -341,7 +342,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                 tr_it += 1
 
 
-def train(dl, ex_it, ex_name, remaining_epochs):
+def train(dl, ex_it, setting, remaining_epochs):
     # torch.autograd.set_detect_anomaly(True)
     args = get_args()
 
@@ -355,7 +356,7 @@ def train(dl, ex_it, ex_name, remaining_epochs):
         device = torch.device('cuda:' + args.device)
     print('device: ', device)
     # run_name = 'predict/' + args.dataset
-    writer = SummaryWriter(f"runs/{ex_name}", purge_step=0)
+    writer = SummaryWriter(f"runs/{setting}", purge_step=0)
 
     # Create RTPT object
     rtpt = RTPT(name_initials='LH', experiment_name=ex_it, max_iterations=remaining_epochs)
@@ -411,11 +412,11 @@ def train(dl, ex_it, ex_name, remaining_epochs):
         # test split
         acc_test, rec_test, th_test = predict(
             NSFR, test_loader, args, device, th=th_val, split='test')
-    NSFR.print_program()
-    prog = NSFR.get_program()
     print("training acc: ", acc, "threashold: ", th, "recall: ", rec)
     print("val acc: ", acc_val, "threashold: ", th_val, "recall: ", rec_val)
     print("test acc: ", acc_test, "threashold: ", th_test, "recall: ", rec_test)
+    NSFR.print_program()
+    prog = NSFR.get_program()
     stats = {'train_acc': acc, 'val_acc': acc_val, 'test_acc': acc_test,
              'train_rec': rec, 'val_rec': rec_val, 'test_rec': rec_test,
              'train_th': th, 'val_th': th_val, 'test_th': th_test,
@@ -447,7 +448,8 @@ if __name__ == "__main__":
 
     label_noise = [0, .1, .3][:1]
     image_noise = [0, .1, .3][:1]
-    rules = ['theoryx', 'numerical', 'complex'][2:]
+    # rules = ['theoryx', 'numerical', 'complex'][2:]
+    rules = [args.dataset]
     visualizations = ['Trains', 'SimpleObjects'][:1]
     car_length = [(2, 4), (7, 7)][:1]
     train_size = [100, 1000, 10000][:1]
