@@ -1,0 +1,8 @@
+load_num(C,1):-load1(C,l),not_none(l),load2(C,none),load3(C,none).
+load_num(C,2):-load1(C,l1),not_none(l1),load2(C,l2),not_none(l2),load3(C,none).
+load_num(C,3):-load1(C,l1),not_none(l1),load2(C,l2),not_none(l2),load3(C,l3),not_none(l3).
+closed(C):-roof(C,foundation).
+closed(C):-roof(C,solid_roof).
+closed(C):-roof(C,braced_roof).
+closed(C):-roof(C,peaked_roof).
+behind(C1,C2):-car_num(C1,N1),car_num(C2,N2),smaller(N1,N2).
