@@ -269,7 +269,7 @@ class MichalskiValuationModule(nn.Module):
         super().__init__()
         self.lang = lang
         self.device = device
-        self.car_nums = ['1', '2', '3', '4', '5', '6', '7']
+        # self.car_nums = ['1', '2', '3', '4', '5', '6', '7']
         self.colors = ["yellow", "green", "grey", "red", "blue"]
         self.lengths = ["short", "long"]
         self.walls = ["full", "braced"]
@@ -278,6 +278,7 @@ class MichalskiValuationModule(nn.Module):
         self.loads = ["none", "blue_box", "golden_vase", "barrel", "diamond", "metal_box", "oval_vase"]
         self.load_nums = ['0', '1', '2', '3']
         self.int = ['0', '1', '2', '3', '4', '5', '6', '7']
+        # self.int = ['0', '1', '2', '3', '4']
         self.obj_desc = {
             # 'car_num': self.car_nums,
             'color': self.colors,

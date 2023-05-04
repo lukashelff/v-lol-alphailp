@@ -119,7 +119,7 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
         post = self.preprocess(concept_padded)
 
         # print activations and image to check if the model is working
-        # print_pred(activations)
+        # print_pred(concept_padded)
         # print_proccessed(post)
         # show_torch_im(x)
         # raise Exception('stop')
