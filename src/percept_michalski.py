@@ -78,10 +78,10 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
     # else:
     # all labels can obtain all classes
 
-    def __init__(self, device, e=4, d=32, train=False):
+    def __init__(self, device,train=False):
         super().__init__()
-        self.e = e  # num of entities
-        self.d = d  # num of dimension
+        # self.e = e  # num of entities
+        # self.d = d  # num of dimension
         self.device = device
         checkpoint = torch.load(f='src/weights/michalski/rcnn/Trains/model.pth', map_location=device)
         rcnn_labels_per_segment = 3
@@ -97,7 +97,7 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.eval()
         self.to(device)
-        self.preprocess = MichalskiPreprocess(device)
+        self.preprocess = MichalskiPreprocess(device, normalize='none')
 
     def forward(self, x):
         activations = self.model(x)
@@ -273,6 +273,16 @@ class MichalskiPreprocess(nn.Module):
                 train[:, i, 21:28] = shift_normalize(torch.cat([x[:, 5 + 8 * i, 0:1], x[:, 5 + 8 * i, 16:22]], dim=-1))
                 train[:, i, 28:35] = shift_normalize(torch.cat([x[:, 6 + 8 * i, 0:1], x[:, 6 + 8 * i, 16:22]], dim=-1))
                 train[:, i, 35:42] = shift_normalize(torch.cat([x[:, 7 + 8 * i, 0:1], x[:, 7 + 8 * i, 16:22]], dim=-1))
+            elif self.normalize == 'none':
+                train[:, i, 0] = x[:, 8 * i, 0]
+                train[:, i, 5:10] = x[:, 8 * i, 1:6]
+                train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]
+                train[:, i, 12:14] = x[:, 2 + 8 * i, 8:10]
+                train[:, i, 14:19] = torch.cat([x[:, 3 + 8 * i, 0:1], x[:, 3 + 8 * i, 10:14]], dim=-1)
+                train[:, i, 19:21] = x[:, 4 + 8 * i, 14:16]
+                train[:, i, 21:28] = torch.cat([x[:, 5 + 8 * i, 0:1], x[:, 5 + 8 * i, 16:22]], dim=-1)
+                train[:, i, 28:35] = torch.cat([x[:, 6 + 8 * i, 0:1], x[:, 6 + 8 * i, 16:22]], dim=-1)
+                train[:, i, 35:42] = torch.cat([x[:, 7 + 8 * i, 0:1], x[:, 7 + 8 * i, 16:22]], dim=-1)
             else:
                 raise ValueError("Unknown normalization method: {}".format(self.normalize))
         return train
