@@ -1,5 +1,4 @@
 kp:1:image
-load_num:2:car,int
 closed:1:car
-smaller:2:int,int
+smaller:2:car_num,car_num
 behind:2:car,car

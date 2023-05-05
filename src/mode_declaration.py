@@ -116,12 +116,12 @@ def get_mode_declarations_michalski(lang, obj_num):
     p_image = ModeTerm('+', DataType('image'))
     m_car = ModeTerm('-', DataType('car'))
     p_car = ModeTerm('+', DataType('car'))
-    # s_car_num = ModeTerm('#', DataType('car_num'))
+    s_car_num = ModeTerm('#', DataType('car_num'))
     s_color = ModeTerm('#', DataType('color'))
     s_length = ModeTerm('#', DataType('length'))
     s_wall = ModeTerm('#', DataType('wall'))
     s_roof = ModeTerm('#', DataType('roof'))
-    # s_wheel = ModeTerm('#', DataType('wheel'))
+    s_wheel = ModeTerm('#', DataType('wheel'))
     s_load1 = ModeTerm('#', DataType('load'))
     s_load2 = ModeTerm('#', DataType('load'))
     s_load3 = ModeTerm('#', DataType('load'))
@@ -136,18 +136,18 @@ def get_mode_declarations_michalski(lang, obj_num):
 
     modeb_list = [
         ModeDeclaration('body', obj_num, lang.get_pred_by_name('in'), [m_car, p_image]),
-        ModeDeclaration('body', 1, lang.get_pred_by_name('car_num'), [p_car, s_int]),
+        ModeDeclaration('body', 1, lang.get_pred_by_name('car_num'), [p_car, s_car_num]),
         ModeDeclaration('body', 1, lang.get_pred_by_name('color'), [p_car, s_color]),
         ModeDeclaration('body', 1, lang.get_pred_by_name('length'), [p_car, s_length]),
         ModeDeclaration('body', 1, lang.get_pred_by_name('wall'), [p_car, s_wall]),
         ModeDeclaration('body', 1, lang.get_pred_by_name('roof'), [p_car, s_roof]),
         ModeDeclaration('body', 1, lang.get_pred_by_name('closed'), [p_car]),
         ModeDeclaration('body', 1, lang.get_pred_by_name('behind'), [p_car, p_car]),
-        ModeDeclaration('body', 1, lang.get_pred_by_name('load_num'), [p_car, s_int]),
-        ModeDeclaration('body', 1, lang.get_pred_by_name('smaller'), [s_int, s_int]),
+        # ModeDeclaration('body', 1, lang.get_pred_by_name('load_num'), [p_car, s_int]),
+        # ModeDeclaration('body', 1, lang.get_pred_by_name('smaller'), [s_car_num, s_car_num]),
         # ModeDeclaration('body', 1, lang.get_pred_by_name('different_color'), [s_color, s_color]),
         # ModeDeclaration('body', 1, lang.get_pred_by_name('equal'), [p_car]),
-        ModeDeclaration('body', 2, lang.get_pred_by_name('wheel'), [p_car, s_int]),
+        ModeDeclaration('body', 2, lang.get_pred_by_name('wheel'), [p_car, s_wheel]),
         ModeDeclaration('body', 2, lang.get_pred_by_name('load1'), [p_car, s_load1]),
         ModeDeclaration('body', 2, lang.get_pred_by_name('load2'), [p_car, s_load2]),
         ModeDeclaration('body', 2, lang.get_pred_by_name('load3'), [p_car, s_load3]),

@@ -415,7 +415,7 @@ class MichalskiCarNumValuationFunction(nn.Module):
         z_shape = z[:, 1:5] * z[:, 0].unsqueeze(-1)  # (B, 4)
         z_shape_padded = torch.cat(
             [torch.zeros(z_shape.shape[0], 1).to(z.device), z_shape, torch.zeros(z_shape.shape[0], 3).to(z.device)], dim=1)  # (B, 5)
-        return (a * z_shape_padded).sum(dim=1)
+        return (a * z_shape).sum(dim=1)
 
 
 class MichalskiColorValuationFunction(nn.Module):
@@ -566,7 +566,7 @@ class MichalskiWheelValuationFunction(nn.Module):
         z_color = z[:, 19:21]
         z_color_padded = torch.cat([torch.zeros(z_color.shape[0], 2).to(z_color.device), z_color,
                                     torch.zeros(z_color.shape[0], 4).to(z_color.device)], dim=1)
-        return (a * z_color_padded).sum(dim=1)
+        return (a * z_color).sum(dim=1)
 
 
 class MichalskiLoad1ValuationFunction(nn.Module):
