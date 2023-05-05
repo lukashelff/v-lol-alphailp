@@ -280,12 +280,12 @@ class MichalskiValuationModule(nn.Module):
         self.int = ['0', '1', '2', '3', '4', '5', '6', '7', ]
         # self.int = ['1', '2', '3', '4']
         self.obj_desc = {
-            'car_num': self.car_nums,
+            # 'car_num': self.car_nums,
             'color': self.colors,
             'length': self.lengths,
             'wall': self.walls,
             'roof': self.roofs,
-            'wheel': self.wheels,
+            # 'wheel': self.wheels,
             'int': self.int,
             'load': self.loads,
         }
