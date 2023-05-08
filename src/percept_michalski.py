@@ -78,10 +78,10 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
     # else:
     # all labels can obtain all classes
 
-    def __init__(self, device,train=False):
+    def __init__(self, e, d, device, train=False):
         super().__init__()
-        # self.e = e  # num of entities
-        # self.d = d  # num of dimension
+        self.e = e  # num of entities
+        self.d = d  # num of dimension
         self.device = device
         checkpoint = torch.load(f='src/weights/michalski/rcnn/Trains/model.pth', map_location=device)
         rcnn_labels_per_segment = 3
@@ -120,8 +120,8 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
 
         # print activations and image to check if the model is working
         # print_pred(concept_padded)
-        # print_proccessed(post)
-        # show_torch_im(x)
+        print_proccessed(post)
+        show_torch_im(x)
         # raise Exception('stop')
 
         return post
@@ -274,7 +274,7 @@ class MichalskiPreprocess(nn.Module):
                 train[:, i, 28:35] = shift_normalize(torch.cat([x[:, 6 + 8 * i, 0:1], x[:, 6 + 8 * i, 16:22]], dim=-1))
                 train[:, i, 35:42] = shift_normalize(torch.cat([x[:, 7 + 8 * i, 0:1], x[:, 7 + 8 * i, 16:22]], dim=-1))
             elif self.normalize == 'none':
-                train[:, i, 0] = x[:, 8 * i, 0]
+                train[:, i, 0] = 1 - x[:, 8 * i, 0]
                 train[:, i, 5:10] = x[:, 8 * i, 1:6]
                 train[:, i, 10:12] = x[:, 1 + 8 * i, 6:8]
                 train[:, i, 12:14] = x[:, 2 + 8 * i, 8:10]
