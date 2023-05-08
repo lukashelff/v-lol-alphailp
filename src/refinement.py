@@ -62,8 +62,13 @@ class RefinementGenerator(object):
 
 
     def generate_new_variable(self, clause):
-        obj_id = self.get_max_obj_id(clause)
-        return Var('O' + str(obj_id+1))
+        """Generate a new variable for a clause.
+        """
+        new_var = Var('X{}'.format(self.vi))
+        self.vi += 1
+        return new_var
+        # obj_id = self.get_max_obj_id(clause)
+        # return Var('O' + str(obj_id+1))
 
 
     def refine_from_modeb(self, clause, modeb):

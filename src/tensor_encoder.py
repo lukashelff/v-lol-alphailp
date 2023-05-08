@@ -231,27 +231,59 @@ class TensorEncoder(object):
         if len(list(set(dtypes))) == 0:
             return []
         # check the data type consistency
-        assert len(list(set(dtypes))) == 1, "Invalid existentially quantified variables. " + \
-            str(len(list(set(dtypes)))) + " data types in the body: " + str(body) + " dypes: " + str(dtypes)
+        # assert len(list(set(dtypes))) == 1, "Invalid existentially quantified variables. " + \
+        #     str(len(list(set(dtypes)))) + " data types in the body: " + str(body) + " dypes: " + str(dtypes)
 
         vars = list(set(vars))
+        dtypes = list(set(dtypes))
+        var_dtypes = list(set(var_dtype_list))
         n_vars = len(vars)
-        consts = self.lang.get_by_dtype(dtypes[0])
+        # consts = self.lang.get_by_dtype(dtypes[0])
+        # consts_list = [self.lang.get_by_dtypes(dtypes[i]) for i in range(len(var_dtypes))]
 
-        # e.g. if the data type is shape, then subs_consts_list = [(red,), (yellow,), (blue,)]
-        subs_consts_list = itertools.permutations(consts, n_vars)
+        theta_dtype_list = []
+        for dtype in dtypes:
+            # e.g. dype = car
+            # consts = [car1, car2, car3]
+            consts = self.lang.get_by_dtype(dtype)
+            vars_dtype = [v for v, d in var_dtypes if d == dtype]
+            # var_dtype = [O1, O2]
+            subs_consts_list = itertools.permutations(consts, len(vars_dtype))
+            # subs_consts_list = [(car1, car2), (car1, car3), (car2, car1), (car2, car3), (car3, car1), (car3, car2)]
+            theta_list_dtype = []
+            for subs_consts in subs_consts_list:
+                # subs_consts = (car1, car2)
+                theta = []
+                for i, const in enumerate(subs_consts):
+                    s = (vars_dtype[i], const)
+                    # s = (O1, car1)
+                    theta.append(s)
+                theta_list_dtype.append(theta)
+            theta_dtype_list.append(theta_list_dtype)
 
-        theta_list = []
-        # generate substitutions by combining variables to the head of subs_consts_list
-        for subs_consts in subs_consts_list:
-            theta = []
-            for i, const in enumerate(subs_consts):
-                s = (vars[i], const)
-                theta.append(s)
-            theta_list.append(theta)
-        # e.g. theta_list: [[(Z, red)], [(Z, yellow)], [(Z, blue)]]
-        #print("theta_list: ", theta_list)
-        return theta_list
+        if len(theta_dtype_list) == 1:
+            return theta_dtype_list[0]
+        else:
+            theta_list = itertools.product(*theta_dtype_list)
+            theta_list = [list(itertools.chain(*theta)) for theta in theta_list]
+            return theta_list
+
+        # ([(O1, car1), (O2, car2)], [(X1, 0)])
+
+        # # e.g. if the data type is shape, then subs_consts_list = [(red,), (yellow,), (blue,)]
+        # subs_consts_list = itertools.permutations(consts, n_vars)
+        #
+        # theta_list = []
+        # # generate substitutions by combining variables to the head of subs_consts_list
+        # for subs_consts in subs_consts_list:
+        #     theta = []
+        #     for i, const in enumerate(subs_consts):
+        #         s = (vars[i], const)
+        #         theta.append(s)
+        #     theta_list.append(theta)
+        # # e.g. theta_list: [[(Z, red)], [(Z, yellow)], [(Z, blue)]]
+        # #print("theta_list: ", theta_list)
+        # return theta_list
 
     def facts_to_index(self, atoms):
         """Convert given ground atoms into the indices.

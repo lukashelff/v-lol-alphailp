@@ -120,8 +120,8 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
 
         # print activations and image to check if the model is working
         # print_pred(concept_padded)
-        print_proccessed(post)
-        show_torch_im(x)
+        # print_proccessed(post)
+        # show_torch_im(x)
         # raise Exception('stop')
 
         return post

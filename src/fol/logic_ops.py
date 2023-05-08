@@ -53,9 +53,13 @@ def subs_list(exp, theta_list):
         return Clause(head, body)
     elif type(exp) == Atom:
         terms = exp.terms
-        for target_var, const in theta_list:
-            terms = [subs(term, target_var, const) for term in terms]
-        return Atom(exp.pred, terms)
+        try:
+            for target_var, const in theta_list:
+                terms = [subs(term, target_var, const) for term in terms]
+            return Atom(exp.pred, terms)
+        except:
+            print('error')
+            raise
     #elif type(exp) == FuncTerm:
     #    for target_var, const in theta_list:
     #        args = [subs(arg, target_var, const) for arg in exp.args]

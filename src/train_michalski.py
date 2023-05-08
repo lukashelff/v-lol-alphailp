@@ -446,13 +446,13 @@ if __name__ == "__main__":
     ds_size = 12000
     resize = False
 
-    label_noise = [0, .1, .3]
+    label_noise = [0, .1, .3][:1]
     image_noise = [0, .1, .3][:1]
     # rules = ['theoryx', 'numerical', 'complex'][2:]
     rules = [args.dataset]
-    visualizations = ['Trains', 'SimpleObjects']
-    car_length = [(2, 4), (7, 7)]
-    train_size = [100, 1000, 10000]
+    visualizations = ['Trains', 'SimpleObjects'][:1]
+    car_length = [(2, 4), (7, 7)][:1]
+    train_size = [100, 1000, 10000][:1]
     replace = True
     start_it = 0
     cross_validation(ds_path, label_noise, image_noise, rules, visualizations, scenes, car_length, train_size, n_splits,
