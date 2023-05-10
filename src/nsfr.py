@@ -44,7 +44,7 @@ class NSFReasoner(nn.Module):
         zs = self.pm(x)
         # convert to the valuation tensor
         V_0 = self.fc(zs, self.atoms, self.bk)
-        self.print_valuation_batch(V_0)
+        # self.print_valuation_batch(V_0)
         # perform T-step forward-chaining reasoning
         V_T = self.im(V_0)
         return V_T

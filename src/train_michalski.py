@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 import warnings
 from datetime import datetime
 from itertools import product
@@ -22,7 +23,7 @@ from michalski_trains.dataset import get_datasets
 from nsfr_utils import denormalize_kandinsky, get_data_loader, get_data_pos_loader, get_data_neg_loader, get_prob, \
     get_nsfr_model, update_initial_clauses
 from nsfr_utils import save_images_with_captions, to_plot_images_kandinsky, generate_captions
-from logic_utils import get_lang, get_searched_clauses
+from logic_utils import get_lang, get_searched_clauses, save_searched_clauses
 from mode_declaration import get_mode_declarations
 
 from clause_generator import ClauseGenerator
@@ -365,7 +366,7 @@ def train(dl, ex_it, setting, remaining_epochs):
     train_loader, val_loader, test_loader = dl['train'], dl['val'], dl['test']
     train_pos_loader, val_pos_loader, test_pos_loader = dl['pos_train'], dl['pos_val'], dl['pos_test']
     train_neg_loader, val_neg_loader, test_neg_loader = dl['neg_train'], dl['neg_val'], dl['neg_test']
-
+    #
     # load logical representations
     lark_path = 'src/lark/exp.lark'
     lang_base_path = 'data/lang/'
@@ -384,6 +385,7 @@ def train(dl, ex_it, setting, remaining_epochs):
         clauses = get_searched_clauses(lark_path, lang_base_path, args.dataset_type, args.dataset)
     else:
         clauses = cgen.generate(clauses, T_beam=args.t_beam, N_beam=args.n_beam, N_max=args.n_max)
+        save_searched_clauses(clauses, lang_base_path, args.dataset_type, args.dataset)
     print("====== ", len(clauses), " clauses are generated!! ======")
     # update
     NSFR = get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=True)
@@ -452,7 +454,7 @@ if __name__ == "__main__":
     rules = [args.dataset]
     visualizations = ['Trains', 'SimpleObjects'][:1]
     car_length = [(2, 4), (7, 7)][:1]
-    train_size = [100, 1000, 10000][:1]
+    train_size = [100, 1000, 10000][1:2]
     replace = True
     start_it = 0
     cross_validation(ds_path, label_noise, image_noise, rules, visualizations, scenes, car_length, train_size, n_splits,

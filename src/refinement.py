@@ -19,6 +19,7 @@ class RefinementGenerator(object):
     def __init__(self, lang, mode_declarations):
         self.lang = lang
         self.mode_declarations = mode_declarations
+        self.max_var_num = 4
         self.vi = 0 # counter for new variable generation
 
 
@@ -93,7 +94,9 @@ class RefinementGenerator(object):
                 new_atom = Atom(modeb.pred, terms)
                 if not new_atom in clause.body:
                     new_clause = Clause(clause.head, clause.body + [new_atom])
-                    C_refined.append(new_clause)
+                    # check the num of variables
+                    if not len(list(set(new_clause.all_vars()))) > self.max_var_num:
+                        C_refined.append(new_clause)
         #self._increment_recall(modeb)
         return list(set(C_refined))
 

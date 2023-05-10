@@ -38,6 +38,8 @@ class DataUtils(object):
                     tree = self.lp_clause.parse(line)
                     clause = ExpTree(lang).transform(tree)
                     clauses.append(clause)
+        else:
+            print(f'No file found at {path}')
         return clauses
 
     def load_atoms(self, path, lang):

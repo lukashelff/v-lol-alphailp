@@ -232,6 +232,7 @@ class ClauseGenerator(object):
         # update infer module with new clauses
         #NSFR = update_nsfr_clauses(self.NSFR, clauses, self.bk_clauses, self.device)
         NSFR = get_nsfr_model(self.args, self.lang, clauses, self.NSFR.atoms, self.NSFR.bk, self.bk_clauses, self.device)
+        print(NSFR.cim.I.size())
         # TODO: Compute loss for validation data , score is bce loss
         # N C B G
         predicted_list_list = []

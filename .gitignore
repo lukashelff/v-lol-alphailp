@@ -133,3 +133,4 @@ dmypy.json
 /runs/
 /src/runs/
 /src/weights/michalski/
+**/beam_searched.txt
