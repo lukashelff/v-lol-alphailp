@@ -16,11 +16,11 @@ from valuation import SlotAttentionValuationModule, YOLOValuationModule, Michals
 attrs = ['color', 'shape', 'material', 'size']
 
 
-def update_initial_clauses(clauses, obj_num):
-    assert len(clauses) == 1, "Too many initial clauses."
-    clause = clauses[0]
-    clause.body = clause.body[:obj_num]
-    return [clause]
+# def update_initial_clauses(clauses, obj_num):
+#     # assert len(clauses) == 1, "Too many initial clauses."
+#     clause = clauses[0]
+#     clause.body = clause.body[:obj_num]
+#     return [clause]
 
 def valuation_to_attr_string(v, atoms, e, th=0.5):
     """Generate string explanations of the scene.

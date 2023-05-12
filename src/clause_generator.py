@@ -117,7 +117,7 @@ class ClauseGenerator(object):
             return self.naive(C_0, T_beam=T_beam, N_max=N_max)
 
 
-    def beam_search_clause(self, clause, T_beam=7, N_beam=20, N_max=100, th=0.98):
+    def beam_search_clauses(self, clauses, T_beam=7, N_beam=20, N_max=100, th=0.98):
         """
         perform beam-searching from a clause
         Inputs
@@ -137,7 +137,7 @@ class ClauseGenerator(object):
         """
         step = 0
         init_step = 0
-        B = [clause]
+        B = clauses #[clause]
         C = set()
         C_dic = {}
         B_ = []
@@ -155,9 +155,9 @@ class ClauseGenerator(object):
                 refs_i = list(set(refs_i).difference(set(B_)))
                 B_.extend(refs_i)
                 refs.extend(refs_i)
-                if self._is_valid(c) and not self._is_confounded(c):
-                    C = C.union(set([c]))
-                    print("Added: ", c)
+                # if self._is_valid(c) and not self._is_confounded(c):
+                C = C.union(set([c]))
+                print("Added: ", c)
 
             print('Evaluating ', len(refs), 'generated clauses.')
             loss_list = self.eval_clauses(refs)
@@ -171,10 +171,11 @@ class ClauseGenerator(object):
                 #    break
             B_new_sorted = sorted(B_new.items(), key=lambda x: x[1], reverse=True)
             # top N_beam refiements
-            B_new_sorted = B_new_sorted[:N_beam]
-            #B_new_sorted = [x for x in B_new_sorted if x[1] > th]
             for x in B_new_sorted:
                 print(x[1], x[0])
+            B_new_sorted = B_new_sorted[:N_beam]
+            #B_new_sorted = [x for x in B_new_sorted if x[1] > th]
+
             B = [x[0] for x in B_new_sorted]
             step += 1
             if len(B) == 0:
@@ -216,10 +217,11 @@ class ClauseGenerator(object):
         C : Set[.logic.Clause]
             a set of generated clauses
         """
-        C = set()
-        for clause in C_0:
-            C = C.union(self.beam_search_clause(
-                clause, T_beam, N_beam, N_max))
+        #C = set()
+        #for clause in C_0:
+        #    C = C.union(self.beam_search_clause(
+        #        clause, T_beam, N_beam, N_max))
+        C = self.beam_search_clauses(C_0, T_beam, N_beam, N_max)
         C = sorted(list(C))
         print('======= BEAM SEARCHED CLAUSES ======')
         for c in C:

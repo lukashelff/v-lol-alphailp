@@ -21,7 +21,7 @@ from rtpt import RTPT
 
 from michalski_trains.dataset import get_datasets
 from nsfr_utils import denormalize_kandinsky, get_data_loader, get_data_pos_loader, get_data_neg_loader, get_prob, \
-    get_nsfr_model, update_initial_clauses
+    get_nsfr_model
 from nsfr_utils import save_images_with_captions, to_plot_images_kandinsky, generate_captions
 from logic_utils import get_lang, get_searched_clauses, save_searched_clauses
 from mode_declaration import get_mode_declarations
@@ -52,9 +52,9 @@ def get_args():
                         help='Smooth parameter in the softor function')
     parser.add_argument("--plot", action="store_true",
                         help="Plot images with captions.")
-    parser.add_argument("--t-beam", type=int, default=4, help="Number of rule expantion of clause generation.")
+    parser.add_argument("--t-beam", type=int, default=4, help="Number of rule expansion of clause generation.")
     parser.add_argument("--n-beam", type=int, default=5, help="The size of the beam.")
-    parser.add_argument("--n-max", type=int, default=50, help="The maximum number of clauses.")
+    parser.add_argument("--n-max", type=int, default=1000, help="The maximum number of clauses.")
     parser.add_argument("--m", type=int, default=1, help="The size of the logic program.")
     parser.add_argument("--n-obj", type=int, default=2, help="The number of objects to be focused.")
     parser.add_argument("--epochs", type=int, default=101, help="The number of epochs.")
@@ -372,7 +372,7 @@ def train(dl, ex_it, setting, remaining_epochs):
     lang_base_path = 'data/lang/'
     lang, clauses, bk_clauses, bk, atoms = get_lang(
         lark_path, lang_base_path, args.dataset_type, args.dataset)
-    clauses = update_initial_clauses(clauses, args.n_obj)
+    # clauses = update_initial_clauses(clauses, args.n_obj)
     print("clauses: ", clauses)
 
     # Neuro-Symbolic Forward Reasoner for clause generation
@@ -448,13 +448,13 @@ if __name__ == "__main__":
     ds_size = 12000
     resize = False
 
-    label_noise = [0, .1, .3][:1]
+    label_noise = [0, .1, .3]
     image_noise = [0, .1, .3][:1]
     # rules = ['theoryx', 'numerical', 'complex'][2:]
     rules = [args.dataset]
-    visualizations = ['Trains', 'SimpleObjects'][:1]
-    car_length = [(2, 4), (7, 7)][:1]
-    train_size = [100, 1000, 10000][1:2]
+    visualizations = ['Trains', 'SimpleObjects']
+    car_length = [(2, 4), (7, 7)]
+    train_size = [100, 1000, 10000]
     replace = True
     start_it = 0
     cross_validation(ds_path, label_noise, image_noise, rules, visualizations, scenes, car_length, train_size, n_splits,
