@@ -28,7 +28,7 @@ class MichalskiDataset(Dataset):
             @return y_val: label data
             """
         # ds data
-        self.images, self.trains, self.masks = [], [], []
+        self.images, self.y, self.trains, self.masks = [], [], [], []
         # ds settings
         self.class_rule, self.base_scene, self.raw_trains, self.train_vis = class_rule, base_scene, raw_trains, train_vis
         self.min_car, self.max_car = min_car, max_car
@@ -67,7 +67,10 @@ class MichalskiDataset(Dataset):
                 train = scene['m_train']
                 # self.trains.append(
                 #     train.replace('michalski_trains.m_train.', 'm_train.'))
-                self.trains.append(jsonpickle.decode(train))
+                train = jsonpickle.decode(train)
+                lab = int(train.get_label() == 'east')
+                self.y.append(lab)
+                self.trains.append(train)
                 self.masks.append(scene['car_masks'])
         # transform
 
@@ -119,11 +122,12 @@ class MichalskiDataset(Dataset):
         return im.size
 
     def get_direction(self, item):
-        lab = self.trains[item].get_label()
-        if lab == 'none':
-            # return torch.tensor(0).unsqueeze(dim=0)
-            raise AssertionError(f'There is no direction label for the selected DS {self.ds_typ}')
-        label_binary = self.label_classes.index(lab)
+        # lab = self.trains[item].get_label()
+        # if lab == 'none':
+        #     # return torch.tensor(0).unsqueeze(dim=0)
+        #     raise AssertionError(f'There is no direction label for the selected DS {self.ds_typ}')
+        # label_binary = self.label_classes.index(lab)
+        label_binary = self.y[item]
         label = torch.tensor(label_binary).unsqueeze(dim=0)
         return label
 

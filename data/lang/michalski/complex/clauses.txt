@@ -1,3 +1,2 @@
-kp(X):-in(O1,X).
 kp(X):-in(O1,X),in(O2,X).
 kp(X):-in(O1,X),in(O2,X),in(O3,X).

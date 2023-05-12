@@ -158,8 +158,7 @@ class ClauseGenerator(object):
                 # if self._is_valid(c) and not self._is_confounded(c):
                 C = C.union(set([c]))
                 print("Added: ", c)
-
-            print('Evaluating ', len(refs), 'generated clauses.')
+            print(f'it {step} of {T_beam - 1}, Evaluating ', len(refs), 'generated clauses.')
             loss_list = self.eval_clauses(refs)
             for i, ref in enumerate(refs):
                 # check duplication

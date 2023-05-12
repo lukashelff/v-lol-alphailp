@@ -140,7 +140,7 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
             set_up_txt += f' and test ds with {test_ds.__len__()} images and train length of {test_ds.min_car}'
         print(set_up_txt)
 
-    labels = [full_ds[i][1] for i in range(len(full_ds))]
+    labels = full_ds.y
     pos_tr_idx, neg_tr_idx = [], []
     pos_val_idx, neg_val_idx = [], []
     pos_test_idx, neg_test_idx = [], []
@@ -307,7 +307,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
             full_ds.predictions_im_count = t_size
             cv = StratifiedShuffleSplit(train_size=t_size, test_size=test_size, random_state=random_state,
                                         n_splits=n_splits)
-            y = np.concatenate([full_ds.get_direction(item) for item in range(full_ds.__len__())])
+            y = full_ds.y
             settings = f'{train_vis}_{class_rule}_{t_size}samples_inoise_{image_noise}_lnoise_{label_noise}'
             for fold, (tr_idx, val_idx) in enumerate(cv.split(np.zeros(len(y)), y)):
                 o_path = f'{output_dir}{settings}/fold_{fold}.csv'
@@ -429,7 +429,7 @@ def train(dl, ex_it, setting, remaining_epochs):
 if __name__ == "__main__":
     '''
     docker run command:
-    docker run --gpus device=12 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
+ docker run --gpus device=0 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset numerical --batch-size 5 --n-beam 70 --t-beam 5 --m 2 --device 0 --batch-size-bs 10
     '''
 
     # get arguments
