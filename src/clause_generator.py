@@ -233,7 +233,7 @@ class ClauseGenerator(object):
         # update infer module with new clauses
         #NSFR = update_nsfr_clauses(self.NSFR, clauses, self.bk_clauses, self.device)
         NSFR = get_nsfr_model(self.args, self.lang, clauses, self.NSFR.atoms, self.NSFR.bk, self.bk_clauses, self.device)
-        print(NSFR.cim.I.size())
+        print(f'tensor size {NSFR.cim.I.size()}')
         # TODO: Compute loss for validation data , score is bce loss
         # N C B G
         predicted_list_list = []
@@ -242,7 +242,7 @@ class ClauseGenerator(object):
         N_data = 0
         # List(C*B*G)
 
-        for i, sample in tqdm(enumerate(self.pos_loader, start=0)):
+        for i, sample in tqdm(enumerate(self.pos_loader, start=0), desc='Evaluating pos clauses', total=len(self.pos_loader)):
             imgs, target_set = map(lambda x: x.to(self.device), sample)
             #print(NSFR.clauses)
             N_data += imgs.size(0)
@@ -258,7 +258,7 @@ class ClauseGenerator(object):
             C_pos_score = C_pos_score.sum(dim=1)
             score += C_pos_score
 
-        for i, sample in tqdm(enumerate(self.neg_loader, start=0)):
+        for i, sample in tqdm(enumerate(self.neg_loader, start=0), desc='Evaluating neg clauses', total=len(self.neg_loader)):
             imgs, target_set = map(lambda x: x.to(self.device), sample)
             #print(NSFR.clauses)
             N_data += imgs.size(0)

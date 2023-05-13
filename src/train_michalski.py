@@ -40,6 +40,8 @@ def get_args():
                                               "clevr-hans0", "clevr-hans1", "clevr-hans2",
                                               "theoryx", "complex", "numerical"], help="Use kandinsky patterns dataset")
     parser.add_argument("--dataset-type", default="kandinsky", help="kandinsky, clevr, michalski")
+    parser.add_argument("--visualization", default="Trains",
+                        help="visualization of the michalski trains either 'Trains' or 'SimpleObjects'")
     parser.add_argument('--device', default='cpu',
                         help='cuda device, i.e. 0 or cpu')
     parser.add_argument("--no-cuda", action="store_true",
@@ -54,7 +56,7 @@ def get_args():
                         help="Plot images with captions.")
     parser.add_argument("--t-beam", type=int, default=4, help="Number of rule expansion of clause generation.")
     parser.add_argument("--n-beam", type=int, default=5, help="The size of the beam.")
-    parser.add_argument("--n-max", type=int, default=1000, help="The maximum number of clauses.")
+    parser.add_argument("--n-max", type=int, default=200, help="The maximum number of clauses.")
     parser.add_argument("--m", type=int, default=1, help="The size of the logic program.")
     parser.add_argument("--n-obj", type=int, default=2, help="The number of objects to be focused.")
     parser.add_argument("--epochs", type=int, default=101, help="The number of epochs.")
@@ -193,7 +195,8 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
     loss_list = []
     for epoch in range(args.epochs):
         loss_i = 0
-        for i, sample in tqdm(enumerate(train_loader, start=0)):
+        for i, sample in tqdm(enumerate(train_loader, start=0),
+                              desc=f'experiment {rtpt._current_iteration / args.epochs} of {rtpt.max_iterations / args.epochs}, nsfr epoch {epoch}'):
             # to cuda
             imgs, target_set = map(lambda x: x.to(device), sample)
 
@@ -227,21 +230,18 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
         # NSFR.print_program()sdfsdf
         if epoch % 20 == 0:
             NSFR.print_program()
-            print("Predicting on validation data set...")
+            print("Predicting data set...")
             acc_val, rec_val, th_val = predict(NSFR, val_loader, args, device, th=0.33, split='val')
             writer.add_scalar("metric/val_acc", acc_val, global_step=epoch)
-            print("acc_val: ", acc_val)
 
-            print("Predicting on training data set...")
             acc, rec, th = predict(NSFR, train_loader, args, device, th=th_val, split='train')
             writer.add_scalar("metric/train_acc", acc, global_step=epoch)
-            print("acc_train: ", acc)
 
+            acc_test = None
             if test_loader is not None:
-                print("Predicting on test data set...")
-                acc, rec, th = predict(NSFR, test_loader, args, device, th=th_val, split='train')
-                writer.add_scalar("metric/test_acc", acc, global_step=epoch)
-                print("acc_test: ", acc)
+                acc_test, rec_test, th_test = predict(NSFR, test_loader, args, device, th=th_val, split='train')
+                writer.add_scalar("metric/test_acc", acc_test, global_step=epoch)
+            print(f"train acc: {acc}, val acc: {acc_val}, test acc: {acc_test}")
 
     return loss
 
@@ -287,7 +287,8 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
     output_dir = f'runs/alphailp_michalski/stats/'
     os.makedirs(output_dir, exist_ok=True)
 
-    for label_noise, image_noise, class_rule, train_vis, base_scene in product(label_noise, image_noise, rules, visualizations, scenes):
+    for label_noise, image_noise, class_rule, train_vis, base_scene in product(label_noise, image_noise, rules,
+                                                                               visualizations, scenes):
         full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule, ds_size=ds_size, max_car=4,
                                min_car=2, label_noise=label_noise, image_noise=image_noise, ds_path=ds_path,
                                resize=resize)
@@ -299,7 +300,8 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                                        ds_path=ds_path, resize=resize)
                 print(f'Using test dataset with train length of 7 for test evaluation')
             else:
-                raise Exception(f'No test dataset with train length of 7 for test evaluation found skipping test evaluation')
+                raise Exception(
+                    f'No test dataset with train length of 7 for test evaluation found skipping test evaluation')
         except:
             print(f'No test dataset found or selected. Skipping test evaluation with train length of 7 ')
             test_ds = None
@@ -322,7 +324,9 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     ex_it = f'aILP:M_{class_rule[0]}'
                     setting = f'aILP:Michalski_{settings}_fold_{fold}'
                     remaining_epochs = args.epochs * (tr_it_total - tr_it)
-                    stats = train(dl, ex_it, setting, remaining_epochs)
+                    rtpt = RTPT(name_initials='LH', experiment_name=ex_it, iteration_start=tr_it,
+                                max_iterations=tr_it_total)
+                    stats = train(dl, setting, rtpt)
                     frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
                               stats['theory'],
                               stats['train_acc'], stats['val_acc'], stats['test_acc'],
@@ -343,7 +347,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                 tr_it += 1
 
 
-def train(dl, ex_it, setting, remaining_epochs):
+def train(dl, setting, rtpt):
     # torch.autograd.set_detect_anomaly(True)
     args = get_args()
 
@@ -360,7 +364,6 @@ def train(dl, ex_it, setting, remaining_epochs):
     writer = SummaryWriter(f"runs/{setting}", purge_step=0)
 
     # Create RTPT object
-    rtpt = RTPT(name_initials='LH', experiment_name=ex_it, max_iterations=remaining_epochs)
     # Start the RTPT tracking
     rtpt.start()
     train_loader, val_loader, test_loader = dl['train'], dl['val'], dl['test']
@@ -390,7 +393,6 @@ def train(dl, ex_it, setting, remaining_epochs):
     # update
     NSFR = get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=True)
     # inferred_clauses = NSFR.clauses
-
 
     params = NSFR.get_params()
     optimizer = torch.optim.RMSprop(params, lr=args.lr)
@@ -442,20 +444,20 @@ if __name__ == "__main__":
     else:
         ds_path = ds_path_remote if torch.cuda.get_device_properties(0).total_memory > 8352890880 else ds_path_local
     scenes = ['base_scene']
-    n_splits = 1
+    n_splits = 5
     batch_size = args.batch_size
     raw_trains = 'MichalskiTrains'
     ds_size = 12000
     resize = False
+    visualization = [args.visualization]
 
-    label_noise = [0, .1, .3]
+    label_noise = [0, .1, .3] if args.visualization == 'Trains' else [0]
     image_noise = [0, .1, .3][:1]
     # rules = ['theoryx', 'numerical', 'complex'][2:]
     rules = [args.dataset]
-    visualizations = ['Trains', 'SimpleObjects']
     car_length = [(2, 4), (7, 7)]
     train_size = [100, 1000, 10000]
-    replace = True
+    replace = False
     start_it = 0
-    cross_validation(ds_path, label_noise, image_noise, rules, visualizations, scenes, car_length, train_size, n_splits,
+    cross_validation(ds_path, label_noise, image_noise, rules, visualization, scenes, car_length, train_size, n_splits,
                      replace, start_it, batch_size)

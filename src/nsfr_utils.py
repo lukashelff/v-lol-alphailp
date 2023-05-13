@@ -418,7 +418,7 @@ def get_nsfr_model(args, lang, clauses, atoms, bk, bk_clauses, device, train=Fal
         PM = SlotAttentionPerceptionModule(e=10, d=19, device=device)
         VM = SlotAttentionValuationModule(lang=lang,  device=device)
     elif args.dataset_type == 'michalski':
-        PM = MichalskiPerceptionModuleRCNN(e=4, d=32, device=device)
+        PM = MichalskiPerceptionModuleRCNN(e=4, d=32, device=device, visualization=args.visualization)
         # PM = MichalskiPerceptionModuleResNet(e=4, d=32, device=device)
         VM = MichalskiValuationModule(lang=lang,  device=device)
 

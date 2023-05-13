@@ -78,12 +78,12 @@ class MichalskiPerceptionModuleRCNN(nn.Module):
     # else:
     # all labels can obtain all classes
 
-    def __init__(self, e, d, device, train=False):
+    def __init__(self, e, d, device, visualization='Trains'):
         super().__init__()
         self.e = e  # num of entities
         self.d = d  # num of dimension
         self.device = device
-        checkpoint = torch.load(f='src/weights/michalski/rcnn/Trains/model.pth', map_location=device)
+        checkpoint = torch.load(f=f'src/weights/michalski/rcnn/{visualization}/model.pth', map_location=device)
         rcnn_labels_per_segment = 3
         self.model = multi_label_maskrcnn_resnet50_fpn_v2(weights=None,
                                                           image_mean=[0.485, 0.456, 0.406],
