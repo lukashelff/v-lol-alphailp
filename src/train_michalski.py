@@ -190,13 +190,13 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
     return ds, dl
 
 
-def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt):
+def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it):
     bce = torch.nn.BCELoss()
     loss_list = []
     for epoch in range(args.epochs):
         loss_i = 0
         for i, sample in tqdm(enumerate(train_loader, start=0),
-                              desc=f'experiment {rtpt._current_iteration / args.epochs} of {rtpt.max_iterations / args.epochs}, nsfr epoch {epoch}'):
+                              desc=f'{ex_it}, NSFR epoch {epoch}'):
             # to cuda
             imgs, target_set = map(lambda x: x.to(device), sample)
 
@@ -319,14 +319,13 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                           f'training batches, already completed: {tr_b}/{tr_b_total} batches. ')
                     ds, dl = setup_ds(full_ds, tr_idx, val_idx, test_ds,
                                       batch_size=batch_size, shuffle=True)
-                    ex_it = f'aILP:Michalski_it({tr_it}/{tr_it_total})_batch({tr_b}/{tr_b_total})'
-                    ex_it = f'aILP:M_{class_rule[0]}_it({tr_it}/{tr_it_total})'
-                    ex_it = f'aILP:M_{class_rule[0]}'
-                    setting = f'aILP:Michalski_{settings}_fold_{fold}'
+                    e_name = f'aILP:{class_rule[0]}_{train_vis[0]}_it({tr_it}/{tr_it_total})'
+                    ex_it = f'Experiment {tr_it} of {tr_it_total}'
+                    run = f'aILP:Michalski_{settings}_fold_{fold}'
                     remaining_epochs = args.epochs * (tr_it_total - tr_it)
-                    rtpt = RTPT(name_initials='LH', experiment_name=ex_it, iteration_start=tr_it,
-                                max_iterations=tr_it_total)
-                    stats = train(dl, setting, rtpt)
+                    rtpt = RTPT(name_initials='LH', experiment_name=e_name, max_iterations=remaining_epochs)
+                    rtpt.start()
+                    stats = train(dl, run, ex_it, rtpt)
                     frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
                               stats['theory'],
                               stats['train_acc'], stats['val_acc'], stats['test_acc'],
@@ -347,7 +346,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                 tr_it += 1
 
 
-def train(dl, setting, rtpt):
+def train(dl, setting, ex_it, rtpt):
     # torch.autograd.set_detect_anomaly(True)
     args = get_args()
 
@@ -365,7 +364,7 @@ def train(dl, setting, rtpt):
 
     # Create RTPT object
     # Start the RTPT tracking
-    rtpt.start()
+
     train_loader, val_loader, test_loader = dl['train'], dl['val'], dl['test']
     train_pos_loader, val_pos_loader, test_pos_loader = dl['pos_train'], dl['pos_val'], dl['pos_test']
     train_neg_loader, val_neg_loader, test_neg_loader = dl['neg_train'], dl['neg_val'], dl['neg_test']
@@ -398,7 +397,7 @@ def train(dl, setting, rtpt):
     optimizer = torch.optim.RMSprop(params, lr=args.lr)
     ##optimizer = torch.optim.Adam(params, lr=args.lr)
 
-    loss_list = train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt)
+    loss_list = train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it)
 
     # validation split
     print("Predicting on validation data set...")
@@ -431,7 +430,7 @@ def train(dl, setting, rtpt):
 if __name__ == "__main__":
     '''
     docker run command:
- docker run --gpus device=0 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset numerical --batch-size 5 --n-beam 70 --t-beam 5 --m 2 --device 0 --batch-size-bs 10
+docker run --gpus device=3 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset numerical --batch-size 5 --n-beam 70 --t-beam 5 --m 2 --device 0 --batch-size-bs 10 --visualization SimpleObjects
     '''
 
     # get arguments
