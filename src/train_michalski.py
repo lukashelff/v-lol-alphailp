@@ -190,10 +190,10 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
     return ds, dl
 
 
-def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it):
+def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it, epochs):
     bce = torch.nn.BCELoss()
     loss_list = []
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         loss_i = 0
         for i, sample in tqdm(enumerate(train_loader, start=0),
                               desc=f'{ex_it}, NSFR epoch {epoch}'):
@@ -320,12 +320,14 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     ds, dl = setup_ds(full_ds, tr_idx, val_idx, test_ds,
                                       batch_size=batch_size, shuffle=True)
                     e_name = f'aILP:{class_rule[0]}_{train_vis[0]}_it({tr_it}/{tr_it_total})'
-                    ex_it = f'Experiment {tr_it} of {tr_it_total}'
+                    ex_it = f'Experiment {tr_it + 1} of {tr_it_total}'
                     run = f'aILP:Michalski_{settings}_fold_{fold}'
-                    remaining_epochs = args.epochs * (tr_it_total - tr_it)
-                    rtpt = RTPT(name_initials='LH', experiment_name=e_name, max_iterations=remaining_epochs)
+                    epochs = args.epochs // 10 if t_size == 10000 else args.epochs
+                    remaining_epochs_normed = int(epochs * (tr_it_total - tr_it) * 550 / t_size)
+
+                    rtpt = RTPT(name_initials='LH', experiment_name=e_name, max_iterations=remaining_epochs_normed)
                     rtpt.start()
-                    stats = train(dl, run, ex_it, rtpt)
+                    stats = train(dl, run, ex_it, rtpt, epochs=epochs)
                     frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
                               stats['theory'],
                               stats['train_acc'], stats['val_acc'], stats['test_acc'],
@@ -346,7 +348,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                 tr_it += 1
 
 
-def train(dl, setting, ex_it, rtpt):
+def train(dl, setting, ex_it, rtpt, epochs):
     # torch.autograd.set_detect_anomaly(True)
     args = get_args()
 
@@ -397,7 +399,8 @@ def train(dl, setting, ex_it, rtpt):
     optimizer = torch.optim.RMSprop(params, lr=args.lr)
     ##optimizer = torch.optim.Adam(params, lr=args.lr)
 
-    loss_list = train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it)
+    loss_list = train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it,
+                           epochs)
 
     # validation split
     print("Predicting on validation data set...")
