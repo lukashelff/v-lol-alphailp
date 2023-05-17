@@ -56,7 +56,7 @@ def get_args():
                         help="Plot images with captions.")
     parser.add_argument("--t-beam", type=int, default=4, help="Number of rule expansion of clause generation.")
     parser.add_argument("--n-beam", type=int, default=5, help="The size of the beam.")
-    parser.add_argument("--n-max", type=int, default=200, help="The maximum number of clauses.")
+    parser.add_argument("--n-max", type=int, default=1000, help="The maximum number of clauses.")
     parser.add_argument("--m", type=int, default=1, help="The size of the logic program.")
     parser.add_argument("--n-obj", type=int, default=2, help="The number of objects to be focused.")
     parser.add_argument("--epochs", type=int, default=101, help="The number of epochs.")
@@ -193,10 +193,11 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
 def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, device, writer, rtpt, ex_it, epochs):
     bce = torch.nn.BCELoss()
     loss_list = []
+    print_epoch = epochs // 5
     for epoch in range(epochs):
         loss_i = 0
         for i, sample in tqdm(enumerate(train_loader, start=0),
-                              desc=f'{ex_it}, NSFR epoch {epoch}'):
+                              desc=f'{ex_it}, NSFR epoch {epoch}/{epochs}'):
             # to cuda
             imgs, target_set = map(lambda x: x.to(device), sample)
 
@@ -211,6 +212,7 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
             loss_i += loss.item()
             loss.backward()
             optimizer.step()
+            rtpt.step()
 
             # if i % 20 == 0:
             #    NSFR.print_valuation_batch(V_T)
@@ -224,11 +226,10 @@ def train_nsfr(args, NSFR, optimizer, train_loader, val_loader, test_loader, dev
             #    NSFR, val_loader, args, device, writer, th=0.33, split='val')
             # print("val acc: ", acc_val, "threashold: ", th_val, "recall: ", rec_val)
         loss_list.append(loss_i)
-        rtpt.step(subtitle=f"loss={loss_i:2.2f}")
         writer.add_scalar("metric/train_loss", loss_i, global_step=epoch)
-        print("loss: ", loss_i)
-        # NSFR.print_program()sdfsdf
-        if epoch % 20 == 0:
+        # print("loss: ", loss_i)
+        # NSFR.print_program()
+        if epoch % print_epoch == 0:
             NSFR.print_program()
             print("Predicting data set...")
             acc_val, rec_val, th_val = predict(NSFR, val_loader, args, device, th=0.33, split='val')
@@ -279,11 +280,13 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
     random_state = 0
     test_size = 2000
     tr_it, tr_b = 0, 0
-    n_batches = sum(train_size) // batch_size
+    n_epochs = [args.epochs // 10 if t == 10000 else args.epochs for t in train_size]
+    n_batches = sum(np.multiply(train_size, n_epochs)) // batch_size
+
     tr_b_total = n_splits * n_batches * len(label_noise) * len(image_noise) * len(rules) * len(
-        visualizations) * len(scenes) * len(car_length)
+        visualizations) * len(scenes)
     tr_it_total = n_splits * len(train_size) * len(label_noise) * len(image_noise) * len(rules) * len(
-        visualizations) * len(scenes) * len(car_length)
+        visualizations) * len(scenes)
     output_dir = f'runs/alphailp_michalski/stats/'
     os.makedirs(output_dir, exist_ok=True)
 
@@ -305,7 +308,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
         except:
             print(f'No test dataset found or selected. Skipping test evaluation with train length of 7 ')
             test_ds = None
-        for t_size in train_size:
+        for t_size, epochs in zip(train_size, n_epochs):
             full_ds.predictions_im_count = t_size
             cv = StratifiedShuffleSplit(train_size=t_size, test_size=test_size, random_state=random_state,
                                         n_splits=n_splits)
@@ -322,10 +325,9 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     e_name = f'aILP:{class_rule[0]}_{train_vis[0]}_it({tr_it}/{tr_it_total})'
                     ex_it = f'Experiment {tr_it + 1} of {tr_it_total}'
                     run = f'aILP:Michalski_{settings}_fold_{fold}'
-                    epochs = args.epochs // 10 if t_size == 10000 else args.epochs
-                    remaining_epochs_normed = int(epochs * (tr_it_total - tr_it) * 550 / t_size)
+                    remaining_batches = tr_b_total - tr_b
 
-                    rtpt = RTPT(name_initials='LH', experiment_name=e_name, max_iterations=remaining_epochs_normed)
+                    rtpt = RTPT(name_initials='LH', experiment_name=e_name, max_iterations=remaining_batches)
                     rtpt.start()
                     stats = train(dl, run, ex_it, rtpt, epochs=epochs)
                     frame = [['aILP', t_size, class_rule, train_vis, base_scene, fold, label_noise, image_noise,
@@ -344,7 +346,7 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     os.makedirs(os.path.dirname(o_path), exist_ok=True)
                     data.to_csv(o_path)
 
-                tr_b += t_size // batch_size
+                tr_b += t_size * epochs // batch_size
                 tr_it += 1
 
 
