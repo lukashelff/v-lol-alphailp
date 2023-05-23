@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 import warnings
+from copy import deepcopy
 from datetime import datetime
 from itertools import product
 from pathlib import Path
@@ -135,7 +136,8 @@ def predict(NSFR, loader, args, device, th=None, split='train'):
         return accuracy, rec_score, th
 
 
-def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, num_worker=4, shuffle=True):
+def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, num_worker=4, shuffle=True, label_noise=0,
+             image_noise=0):
     if len(tr_idx) > 0:
         set_up_txt = f'split ds into training ds with {len(tr_idx)} images and validation ds with {len(val_idx)} images'
         if test_ds is not None:
@@ -163,11 +165,15 @@ def setup_ds(full_ds, tr_idx=None, val_idx=None, test_ds=None, batch_size=10, nu
                 pos_test_idx.append(i)
             else:
                 neg_test_idx.append(i)
-
+    tr_ds = deepcopy(full_ds)
+    if label_noise > 0:
+        tr_ds.apply_label_noise(label_noise)
+    if image_noise > 0:
+        tr_ds.apply_image_noise(image_noise)
     ds = {
-        'train': Subset(full_ds, tr_idx),
-        'pos_train': Subset(test_ds, pos_tr_idx),
-        'neg_train': Subset(test_ds, neg_tr_idx),
+        'train': Subset(tr_ds, tr_idx),
+        'pos_train': Subset(tr_ds, pos_tr_idx),
+        'neg_train': Subset(tr_ds, neg_tr_idx),
         'val': Subset(full_ds, val_idx),
         'pos_val': Subset(full_ds, pos_val_idx),
         'neg_val': Subset(full_ds, neg_val_idx),
@@ -293,22 +299,16 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
     for label_noise, image_noise, class_rule, train_vis, base_scene in product(label_noise, image_noise, rules,
                                                                                visualizations, scenes):
         full_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule, ds_size=ds_size, max_car=4,
-                               min_car=2, label_noise=label_noise, image_noise=image_noise, ds_path=ds_path,
-                               resize=resize)
-        try:
-            if (7, 7) in car_length:
-                test_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
-                                       ds_size=2000, max_car=7, min_car=7,
-                                       label_noise=label_noise, image_noise=image_noise,
-                                       ds_path=ds_path, resize=resize)
-                print(f'Using test dataset with train length of 7 for test evaluation')
-            else:
-                raise Exception(
-                    f'No test dataset with train length of 7 for test evaluation found skipping test evaluation')
-        except:
-            print(f'No test dataset found or selected. Skipping test evaluation with train length of 7 ')
+                               min_car=2, ds_path=ds_path, resize=resize)
+        if (7, 7) in car_length and label_noise == 0:
+            test_ds = get_datasets(base_scene, raw_trains, train_vis, class_rule=class_rule,
+                                   ds_size=2000, max_car=7, min_car=7, ds_path=ds_path, resize=resize)
+            print(f'Using test dataset with train length of 7 for test evaluation')
+        else:
+            print(f'No test dataset found/selected. Skipping test evaluation with train length of 7 ')
             test_ds = None
         for t_size, epochs in zip(train_size, n_epochs):
+            print(full_ds.__len__())
             full_ds.predictions_im_count = t_size
             cv = StratifiedShuffleSplit(train_size=t_size, test_size=test_size, random_state=random_state,
                                         n_splits=n_splits)
@@ -321,7 +321,8 @@ def cross_validation(ds_path: str, label_noise: list, image_noise: list, rules: 
                     print(f'training iteration {tr_it + 1}/{tr_it_total} with {t_size // batch_size} '
                           f'training batches, already completed: {tr_b}/{tr_b_total} batches. ')
                     ds, dl = setup_ds(full_ds, tr_idx, val_idx, test_ds,
-                                      batch_size=batch_size, shuffle=True)
+                                      batch_size=batch_size, shuffle=True, label_noise=label_noise,
+                                      image_noise=image_noise)
                     e_name = f'aILP:{class_rule[0]}_{train_vis[0]}_it({tr_it}/{tr_it_total})'
                     ex_it = f'Experiment {tr_it + 1} of {tr_it_total}'
                     run = f'aILP:Michalski_{settings}_fold_{fold}'
@@ -435,7 +436,7 @@ def train(dl, setting, ex_it, rtpt, epochs):
 if __name__ == "__main__":
     '''
     docker run command:
-docker run --gpus device=3 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset numerical --batch-size 5 --n-beam 70 --t-beam 5 --m 2 --device 0 --batch-size-bs 10 --visualization SimpleObjects
+docker run --gpus device=5 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:/NSFR -v $(pwd)/MichalskiTrainProblem/TrainGenerator/output/image_generator:/NSFR/data/michalski/all alpha-ilp python3 src/train_michalski.py --dataset-type michalski --dataset compplex --batch-size 5 --n-beam 70 --t-beam 5 --m 2 --device 0 --batch-size-bs 10
     '''
 
     # get arguments
@@ -455,13 +456,13 @@ docker run --gpus device=3 --shm-size='20gb' --memory="700g" -v $(pwd)/alphailp:
     resize = False
     visualization = [args.visualization]
 
-    label_noise = [0, .1, .3] if args.visualization == 'Trains' else [0]
+    label_noise = [0, .1, .3][:1] if args.visualization == 'Trains' else [0]
     image_noise = [0, .1, .3][:1]
     # rules = ['theoryx', 'numerical', 'complex'][2:]
     rules = [args.dataset]
     car_length = [(2, 4), (7, 7)]
     train_size = [100, 1000, 10000]
-    replace = False
+    replace = True
     start_it = 0
     cross_validation(ds_path, label_noise, image_noise, rules, visualization, scenes, car_length, train_size, n_splits,
                      replace, start_it, batch_size)
