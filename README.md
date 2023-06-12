@@ -1,33 +1,26 @@
-# alphaILP: Thinking Visual Scenes as Differentiable Logic Programs
-This is the implementation of alphaILP.
+# alphaILP on V-LoL-Trains
+
+This is the implementation of alphaILP extended to learn the V-LoL-Trains. The original alphaILP is proposed
+in [Learning to Compose Dynamic Tree Structures for Visual Contexts](https://arxiv.org/abs/2004.00646). The original
+code is available at https://github.com/ml-research/alphailp.git.
 
 ![ailp](./imgs/aILP.png)
 
-## Installation
-The packages are specified in [requirements.txt](./requirements.txt). Please install the packages by:
+## Set up the environment
+
 ```
-pip install -r requirements.txt
+docker build -t vlol-alpha-ilp .
 ```
 
 ## Training
-### Kandinsky Patterns Twopairs Dataset:
+
+### V-LoL-Trains Dataset:
+Download the V-LoL-Trains dataset from [here](https://sites.google.com/view/
+v-lol) and link the extracted folder in the docker command, e.g. `-v $(pwd)/V-LoL-dataset:/NSFR/data/michalski/all`. 
 ```
-python src/train.py --dataset-type kandinsky --dataset twopairs --batch-size 1 --no-cuda --n-beam 5 --t-beam 5
+docker run --gpus device=0 --shm-size='20gb' --memory="700g" -v $(pwd)/v-lol-alphailp:/NSFR -v $(pwd)/V-LoL-dataset:/NSFR/data/michalski/all vlol-alpha-ilp python3 src/michalski_cross_val.py --dataset-type michalski --dataset theoryx --batch-size 10 --n-beam 50 --t-beam 5 --m 2 --device 0
 ```
-### CLEVR-Hans3 Dataset:
-```
-python src/train.py --dataset-type clevr --dataset clevr-hans0 --batch-size 1 --no-cuda --n-beam 15 --t-beam 5
-python src/train.py --dataset-type clevr --dataset clevr-hans1 --batch-size 1 --no-cuda --n-beam 15 --t-beam 6
-python src/train.py --dataset-type clevr --dataset clevr-hans2 --batch-size 1 --no-cuda --n-beam 15 --t-beam 7
-```
-
-
-![twopairs](./imgs/twopairs-predicted.png)
-![clevr-hans3](./imgs/clevr-hans3-predicted.png)
-![clevr-hans7](./imgs/clevr-hans7-predicted.png)
-
-
-
 
 # LICENSE
+
 See [LICENSE](./LICENSE). The [src/yolov5](./src/yolov5) folder is following [GPL3](./src/yolov5/LICENSE) license.
